@@ -3,7 +3,7 @@
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { clientCashEntries, clientCompliance, clientDocuments, clientPayments, clients, clientWorkCases } from "../../drizzle/schema";
-import { requireCurrentAccount } from "../account-context";
+import { getCurrentAccount, requireCurrentAccount } from "../account-context";
 import { getClientBundle, getDb, getOwnedClient } from "../db";
 import { publicProcedure, router } from "../_core/trpc";
 
@@ -33,7 +33,8 @@ const DEFAULT_CASES = [["Dossier CDI", "CDI"], ["Dossier CPI", "CPI"], ["Dossier
 
 export const clientsRouter = router({
   list: publicProcedure.input(z.object({ includeArchived: z.boolean().optional() }).optional()).query(async ({ ctx, input }) => {
-    const account = await requireCurrentAccount(ctx.req);
+    const account = await getCurrentAccount(ctx.req);
+    if (!account) return [];
     const db = await getDb();
     if (!db) throw new Error("La base de données est indisponible.");
     return db.select().from(clients).where(input?.includeArchived ? eq(clients.accountId, account.id) : and(eq(clients.accountId, account.id), isNull(clients.archivedAt)));

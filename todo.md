@@ -21,3 +21,4 @@
 - [x] Ajouter des tests unitaires de propagation du compte connecté pour la consultation et l’export.
 - [x] Ajouter des tests documentés de parcours authentifiés pour inscription, création de client, import et export.
 - [x] Ajouter des tests d’isolation persistante A/B pour get, saveBundle, archive, exportData et commitImport sans conserver de données de test.
+- [x] Diagnostiquer et corriger le dysfonctionnement signalé après la version full-stack, puis vérifier le parcours concerné en condition réelle.

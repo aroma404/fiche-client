@@ -1,4 +1,4 @@
-const CACHE_NAME = "fiche-client-offline-v1";
+const CACHE_NAME = "fiche-client-offline-v2";
 const CORE = ["/", "/index.html", "/manifest.webmanifest", "/favicon.svg"];
 
 self.addEventListener("install", (event) => {
@@ -10,7 +10,10 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  if (event.request.method !== "GET" || new URL(event.request.url).origin !== self.location.origin) return;
+  const url = new URL(event.request.url);
+  if (event.request.method !== "GET" || url.origin !== self.location.origin) return;
+  // Ne jamais mettre en cache les données sensibles, les modules de développement ou les réponses versionnées de Vite.
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/@") || url.pathname.includes("/node_modules/") || url.search) return;
   if (event.request.mode === "navigate") {
     event.respondWith(fetch(event.request).then((response) => { const copy = response.clone(); caches.open(CACHE_NAME).then((cache) => cache.put("/index.html", copy)); return response; }).catch(() => caches.match("/index.html")));
     return;

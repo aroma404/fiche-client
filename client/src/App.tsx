@@ -1,20 +1,21 @@
+/** Atelier fiscal moderne — routes chargées depuis le registre de plugins. */
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import Home from "./pages/Home";
-
+import { SessionProvider } from "./core/session-store";
+import { AppShell } from "./app/AppShell";
+import { plugins } from "./core/plugin-registry";
 
 function Router() {
   return (
-    <Switch>
-      <Route path={"/"} component={Home} />
-      <Route path={"/404"} component={NotFound} />
-      {/* Final fallback route */}
-      <Route component={NotFound} />
-    </Switch>
+    <AppShell>
+      <Switch>
+        {plugins.map(({ id, route, component: PluginPage }) => <Route key={id} path={route}>{() => <PluginPage />}</Route>)}
+        <Route>{() => <div className="p-10 text-sm text-[#526775]">Cette page n’existe pas dans l’atelier fiscal.</div>}</Route>
+      </Switch>
+    </AppShell>
   );
 }
 
@@ -26,13 +27,12 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider
-        defaultTheme="light"
-        // switchable
-      >
+      <ThemeProvider defaultTheme="light">
         <TooltipProvider>
-          <Toaster />
-          <Router />
+          <SessionProvider>
+            <Toaster position="top-right" />
+            <Router />
+          </SessionProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>

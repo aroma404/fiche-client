@@ -33,5 +33,12 @@ createRoot(document.getElementById("root")!).render(
 );
 
 if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => { navigator.serviceWorker.register("/sw.js").then(registration => registration.update()).catch(() => undefined); });
+  window.addEventListener("load", () => {
+    if (import.meta.env.DEV) {
+      // Évite que le preview Vite conserve des modules de développement obsolètes entre deux versions.
+      navigator.serviceWorker.getRegistrations().then(registrations => Promise.all(registrations.map(registration => registration.unregister()))).catch(() => undefined);
+      return;
+    }
+    navigator.serviceWorker.register("/sw.js").then(registration => registration.update()).catch(() => undefined);
+  });
 }

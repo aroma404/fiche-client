@@ -22,3 +22,4 @@
 - [x] Ajouter des tests documentés de parcours authentifiés pour inscription, création de client, import et export.
 - [x] Ajouter des tests d’isolation persistante A/B pour get, saveBundle, archive, exportData et commitImport sans conserver de données de test.
 - [x] Diagnostiquer et corriger le dysfonctionnement signalé après la version full-stack, puis vérifier le parcours concerné en condition réelle.
+- [x] Corriger l’erreur « Invalid hook call / useState null » entre React DOM et TRPCProvider signalée sur la page d’accueil publiée.

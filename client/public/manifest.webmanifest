@@ -1,0 +1,13 @@
+{
+  "name": "Fiche Client Impôt",
+  "short_name": "Fiche Client",
+  "description": "Atelier fiscal temporaire et imprimable.",
+  "lang": "fr",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f5f0",
+  "theme_color": "#0f766e",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}

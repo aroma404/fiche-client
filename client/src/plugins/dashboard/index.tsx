@@ -8,8 +8,6 @@ import { SectionCard } from "@/components/section-card";
 import { useSession } from "@/core/session-store";
 import { paymentTotal } from "@/lib/format";
 
-const heroUrl = "/manus-storage/atelier-fiscal-hero_a4ff746a.png";
-
 export default function DashboardPlugin() {
   const [, setLocation] = useLocation();
   const { state } = useSession();
@@ -20,7 +18,7 @@ export default function DashboardPlugin() {
     <div>
       <PageHeader eyebrow="Poste de pilotage" title="Préparez la fiche avant de la transmettre." description="Travaillez dans une session locale : les données restent dans ce navigateur et disparaissent à la fermeture ou au rechargement." actions={<Button onClick={() => setLocation("/fiche")} className="bg-[#0f766e] shadow-none hover:bg-[#0b625c]">Ouvrir la fiche <ArrowRight size={16} /></Button>} />
       <section className="relative mb-7 min-h-[300px] overflow-hidden rounded-[1.4rem] border border-[#d6e0dd] bg-[#ebeae4] p-7 shadow-[0_16px_45px_rgba(16,42,67,0.07)] sm:p-10">
-        <img src={heroUrl} alt="Bureau fiscal minimaliste" className="absolute inset-0 h-full w-full object-cover opacity-80" />
+        <div aria-hidden="true" className="paper-hero-art absolute inset-0 overflow-hidden" />
         <div className="relative max-w-xl"><div className="editorial-rule mb-5" /><p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[#0f766e]">Atelier temporaire</p><h2 className="mt-3 font-serif text-4xl leading-[0.98] text-[#102a43] sm:text-5xl">Un dossier clair, sans conservation durable.</h2><p className="mt-4 max-w-md text-sm leading-6 text-[#354f60]">Commencez par les informations essentielles, complétez les pièces justificatives, puis vérifiez les paiements avant impression.</p><div className="mt-7 flex flex-wrap gap-2"><Button onClick={() => setLocation("/fiche")} className="bg-[#102a43] hover:bg-[#183a58]">Créer la fiche</Button><Button variant="outline" onClick={() => setLocation("/documents")} className="border-[#bacac4] bg-white/70">Voir les documents</Button></div></div>
       </section>
       <section className="mb-7 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">

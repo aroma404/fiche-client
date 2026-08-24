@@ -1,0 +1,7 @@
+- [x] Inventorier les ressources et dépendances chargées depuis Internet.
+- [x] Intégrer les visuels de marque sous forme d’illustrations SVG locales dans le bundle.
+- [x] Remplacer les polices distantes par des polices système locales cohérentes.
+- [x] Ajouter un manifeste PWA et un service worker de cache applicatif.
+- [x] Enregistrer le service worker depuis le point d’entrée React.
+- [x] Vérifier le build, le cache des pages principales et l’absence de persistance des données client.
+- [ ] Créer un point de contrôle et livrer la version hors connexion.

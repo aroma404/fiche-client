@@ -51,8 +51,8 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
-  --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: "DM Serif Display", ui-serif, Georgia, serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-serif: Georgia, "Times New Roman", serif;
 }
 
 @layer base {
@@ -68,6 +68,17 @@
 }
 
 @keyframes app-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+.paper-hero-art {
+  background:
+    radial-gradient(circle at 80% 24%, rgba(201, 154, 62, 0.22) 0 2px, transparent 3px),
+    linear-gradient(135deg, transparent 0 54%, rgba(15, 118, 110, 0.86) 54% 100%),
+    linear-gradient(115deg, rgba(255,255,255,0.92) 0 48%, rgba(230,236,232,0.82) 48% 100%);
+}
+
+.paper-hero-art::before, .paper-hero-art::after { content: ""; position: absolute; border-radius: 0.75rem; transform: rotate(8deg); }
+.paper-hero-art::before { right: 10%; top: 17%; width: 44%; height: 66%; background: #f9f6e9; box-shadow: -10px 11px 0 rgba(16,42,67,0.09); }
+.paper-hero-art::after { right: 20%; bottom: 18%; width: 23%; height: 5px; background: #102a43; box-shadow: 0 10px 0 #102a43; }
 
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
 

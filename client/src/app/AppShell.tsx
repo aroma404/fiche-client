@@ -10,13 +10,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { plugins } from "@/core/plugin-registry";
 import { useSession } from "@/core/session-store";
-
-const logoUrl = "/manus-storage/fiche-client-logo_924d3505.png";
+import { BrandSymbol } from "@/components/local-visuals";
+import { useNetworkStatus } from "@/hooks/useNetworkStatus";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const [location] = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { reset } = useSession();
+  const online = useNetworkStatus();
   const active = plugins.find((plugin) => plugin.route === location) ?? plugins[0];
 
   const navigation = (onNavigate?: () => void) => (
@@ -38,7 +39,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen bg-[#f6f5f0] lg:flex">
       <aside className="sidebar-shell sticky top-0 z-30 hidden h-screen w-[286px] shrink-0 flex-col border-r border-[#cfdad7] bg-[#edf1ee] px-5 py-6 lg:flex">
         <Link href="/" className="mb-7 border-b border-[#cfdad7] pb-6">
-          <div className="flex items-center gap-3"><img src={logoUrl} alt="Symbole Fiche Client Impôt" className="h-12 w-12 rounded-lg bg-[#fbfcfa] object-contain p-1.5 shadow-sm" /><div><p className="font-serif text-2xl leading-none text-[#102a43]">Fiche Client</p><p className="mt-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#0f766e]">Atelier fiscal</p></div></div>
+          <div className="flex items-center gap-3"><BrandSymbol className="h-12 w-12 rounded-lg bg-[#fbfcfa] p-1 shadow-sm" /><div><p className="font-serif text-2xl leading-none text-[#102a43]">Fiche Client</p><p className="mt-1.5 text-[10px] font-extrabold uppercase tracking-[0.16em] text-[#0f766e]">Atelier fiscal</p></div></div>
           <p className="mt-4 text-xs leading-5 text-[#647987]">Registre de suivi temporaire et imprimable.</p>
         </Link>
         <div className="mb-3 flex items-center justify-between"><p className="text-[10px] font-extrabold uppercase tracking-[0.14em] text-[#58727a]">Parcours de travail</p><span className="text-[10px] font-extrabold text-[#c99a3e]">01—04</span></div>
@@ -52,11 +53,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       <div className="min-w-0 flex-1">
         <header className="topbar-shell sticky top-0 z-20 flex h-[72px] items-center justify-between border-t-[3px] border-[#c99a3e] border-b border-[#d7e0df] bg-[#f6f5f0]/90 px-5 backdrop-blur lg:px-10">
           <div className="flex items-center gap-3"><button onClick={() => setMobileOpen(true)} aria-label="Ouvrir le menu" className="flex h-9 w-9 items-center justify-center rounded-lg bg-[#102a43] text-white lg:hidden"><Menu size={18} /></button><div><p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#0f766e]">Fonction active</p><p className="text-sm font-extrabold text-[#102a43]">{active.label}</p></div></div>
-          <div className="hidden items-center gap-2 text-xs font-bold text-[#617581] sm:flex"><span className="h-2 w-2 rounded-full bg-[#0f766e]" /> Session temporaire</div>
+          <div className="hidden items-center gap-2 text-xs font-bold text-[#617581] sm:flex"><span className={`h-2 w-2 rounded-full ${online ? "bg-[#0f766e]" : "bg-[#c99a3e]"}`} /> {online ? "Prêt hors connexion" : "Mode hors connexion"}</div>
         </header>
         <main className="app-enter mx-auto min-h-[calc(100vh-72px)] max-w-[1440px] px-5 py-8 lg:px-10 lg:py-10">{children}</main>
       </div>
-      {mobileOpen ? <div className="fixed inset-0 z-50 bg-[#102a43]/35 backdrop-blur-[2px] lg:hidden"><aside className="h-full w-[290px] bg-[#f1f4f1] p-5 shadow-2xl"><div className="mb-8 flex items-center justify-between"><Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-3"><img src={logoUrl} alt="Symbole Fiche Client Impôt" className="h-10 w-10 rounded-xl object-cover" /><div><p className="font-serif text-lg text-[#102a43]">Fiche Client</p><p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#0f766e]">Atelier fiscal</p></div></Link><button onClick={() => setMobileOpen(false)} aria-label="Fermer le menu" className="rounded-lg p-2 text-[#526775] hover:bg-white"><X size={19} /></button></div>{navigation(() => setMobileOpen(false))}<div className="mt-8 border-t border-[#d7e0df] pt-4"><ResetButton reset={() => { reset(); setMobileOpen(false); }} /></div></aside></div> : null}
+      {mobileOpen ? <div className="fixed inset-0 z-50 bg-[#102a43]/35 backdrop-blur-[2px] lg:hidden"><aside className="h-full w-[290px] bg-[#f1f4f1] p-5 shadow-2xl"><div className="mb-8 flex items-center justify-between"><Link href="/" onClick={() => setMobileOpen(false)} className="flex items-center gap-3"><BrandSymbol className="h-10 w-10 rounded-lg bg-white p-1" /><div><p className="font-serif text-lg text-[#102a43]">Fiche Client</p><p className="text-[10px] font-extrabold uppercase tracking-[0.12em] text-[#0f766e]">Atelier fiscal</p></div></Link><button onClick={() => setMobileOpen(false)} aria-label="Fermer le menu" className="rounded-lg p-2 text-[#526775] hover:bg-white"><X size={19} /></button></div>{navigation(() => setMobileOpen(false))}<div className="mt-8 border-t border-[#d7e0df] pt-4"><ResetButton reset={() => { reset(); setMobileOpen(false); }} /></div></aside></div> : null}
     </div>
   );
 }

@@ -18,7 +18,7 @@ function download(data: ExportPayload, format: "json" | "xlsx") {
   XLSX.writeFile(workbook, `fiche-client-export-${date}.xlsx`);
 }
 
-function parseImport(fileName: string, raw: string | ArrayBuffer): ImportPayload {
+export function parseImport(fileName: string, raw: string | ArrayBuffer): ImportPayload {
   if (fileName.toLowerCase().endsWith(".json")) { const parsed = JSON.parse(raw as string); if (!parsed || parsed.schemaVersion !== 1 || !Array.isArray(parsed.clients)) throw new Error("Le fichier JSON ne correspond pas au format Fiche Client Impôt."); return { schemaVersion: 1, clients: parsed.clients.map(normalizeBundle) }; }
   const workbook = XLSX.read(raw as ArrayBuffer, { type: "array" }); const sheet = (name: string) => XLSX.utils.sheet_to_json<any>(workbook.Sheets[name] ?? {}, { defval: "" }); const clientRows = sheet("Clients"); if (!clientRows.length) throw new Error("La feuille « Clients » est absente ou vide."); const keyed = (name: string) => sheet(name).reduce((map: Map<number, any[]>, row: any) => { const key = Number(row.clientKey); map.set(key, [...(map.get(key) ?? []), row]); return map; }, new Map<number, any[]>()); const documents = keyed("Documents"), compliance = keyed("Conformité"), cases = keyed("Dossiers"), payments = keyed("Paiements"), cashEntries = keyed("Caisse"); return { schemaVersion: 1, clients: clientRows.map((client: any) => normalizeBundle({ client, documents: documents.get(Number(client.clientKey)) ?? [], compliance: compliance.get(Number(client.clientKey)) ?? [], cases: cases.get(Number(client.clientKey)) ?? [], payments: payments.get(Number(client.clientKey)) ?? [], cashEntries: cashEntries.get(Number(client.clientKey)) ?? [] })) };
 }

@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   getClientBundle: vi.fn(),
   getClientBundles: vi.fn(),
   getDb: vi.fn(),
+  getOwnedClient: vi.fn(),
 }));
 
 vi.mock("./account-context", () => ({ requireCurrentAccount: mocks.requireCurrentAccount }));
@@ -14,7 +15,7 @@ vi.mock("./db", () => ({
   getClientBundle: mocks.getClientBundle,
   getClientBundles: mocks.getClientBundles,
   getDb: mocks.getDb,
-  getOwnedClient: vi.fn(),
+  getOwnedClient: mocks.getOwnedClient,
 }));
 
 import { clientsRouter } from "./routers/clients";
@@ -74,5 +75,25 @@ describe("isolation des comptes", () => {
 
     expect(values).toHaveBeenCalledWith(expect.objectContaining({ accountId: 17, fullName: "Nouveau dossier isolé" }));
     expect(values).not.toHaveBeenCalledWith(expect.objectContaining({ accountId: 999 }));
+  });
+
+  it("empêche un second compte de lire, modifier ou exporter le dossier du premier", async () => {
+    mocks.requireCurrentAccount.mockResolvedValue({ id: 18, email: "autre-cabinet@exemple.test" });
+    mocks.getClientBundle.mockResolvedValue(null);
+    mocks.getOwnedClient.mockResolvedValue(null);
+    mocks.getClientBundles.mockResolvedValue([]);
+    const clientsCaller = clientsRouter.createCaller(ctx);
+    const transfersCaller = transfersRouter.createCaller(ctx);
+
+    await expect(clientsCaller.get({ clientId: 7 })).rejects.toThrow("Client introuvable.");
+    await expect(clientsCaller.saveBundle({
+      clientId: 7,
+      data: { client: { fullName: "Dossier autorisé" }, documents: [], compliance: [], cases: [], payments: [], cashEntries: [] },
+    })).rejects.toThrow("Client introuvable.");
+
+    await expect(transfersCaller.exportData({ format: "json", scope: "selected", clientIds: [7] })).resolves.toMatchObject({ clients: [] });
+    expect(mocks.getClientBundle).toHaveBeenCalledWith(18, 7);
+    expect(mocks.getOwnedClient).toHaveBeenCalledWith(18, 7);
+    expect(mocks.getClientBundles).toHaveBeenCalledWith(18, [7]);
   });
 });

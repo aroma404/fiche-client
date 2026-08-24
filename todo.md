@@ -4,7 +4,7 @@
 - [x] Ajouter un manifeste PWA et un service worker de cache applicatif.
 - [x] Enregistrer le service worker depuis le point d’entrée React.
 - [x] Vérifier le build, le cache des pages principales et l’absence de persistance des données client.
-- [ ] Créer un point de contrôle et livrer la version hors connexion.
+- [x] Créer un point de contrôle et livrer la version hors connexion.
 - [x] Passer le projet au socle full-stack avec authentification et base de données.
 - [x] Créer les écrans français d’accueil, de connexion et de création de compte.
 - [x] Ajouter les tables de comptes, sessions, clients et données métier liées.
@@ -13,9 +13,11 @@
 - [x] Ajouter les pages Mon compte, gestion de session et déconnexion.
 - [x] Ajouter l’export JSON/XLSX pour le client actif, une sélection ou tous les clients du compte.
 - [x] Ajouter l’import JSON/XLSX avec prévisualisation, validation et propriété forcée au compte connecté.
-- [ ] Tester les parcours, l’isolation, les imports, les exports et le build de production.
-- [ ] Créer un point de contrôle et livrer la version full-stack.
+- [x] Tester les parcours, l’isolation, les imports, les exports et le build de production.
+- [x] Créer un point de contrôle et livrer la version full-stack.
 - [x] Recréer les vues de fiche, documents, conformité, dossiers, paiements, caisse et impression pour le client actif persistant.
-- [ ] Ajouter les tests automatisés d’isolation stricte entre deux comptes pour les opérations sur les clients et les transferts.
+- [x] Ajouter les tests automatisés d’isolation stricte entre deux comptes pour les opérations sur les clients et les transferts.
 - [x] Réintégrer la vue Confidentialité au dossier client actif.
 - [x] Ajouter des tests unitaires de propagation du compte connecté pour la consultation et l’export.
+- [x] Ajouter des tests documentés de parcours authentifiés pour inscription, création de client, import et export.
+- [x] Ajouter des tests d’isolation persistante A/B pour get, saveBundle, archive, exportData et commitImport sans conserver de données de test.

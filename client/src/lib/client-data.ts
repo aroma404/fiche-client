@@ -29,7 +29,9 @@ export function normalizeBundle(raw: any): ClientDraft {
   const fallback = createClientDraft(raw?.client?.fullName ?? "");
   if (!raw?.client) return fallback;
   return {
-    client: { ...fallback.client, ...raw.client, initialBalance: Number(raw.client.initialBalance ?? 0), observations: raw.client.observations ?? "" },
+    client: {
+      fullName: String(raw.client.fullName ?? fallback.client.fullName), activity: String(raw.client.activity ?? fallback.client.activity), legalForm: String(raw.client.legalForm ?? fallback.client.legalForm), clientType: String(raw.client.clientType ?? fallback.client.clientType), status: String(raw.client.status ?? fallback.client.status), commune: String(raw.client.commune ?? fallback.client.commune), contact: String(raw.client.contact ?? fallback.client.contact), nif: String(raw.client.nif ?? fallback.client.nif), rc: String(raw.client.rc ?? fallback.client.rc), bp: String(raw.client.bp ?? fallback.client.bp), taxArticle: String(raw.client.taxArticle ?? fallback.client.taxArticle), nin: String(raw.client.nin ?? fallback.client.nin), regime: String(raw.client.regime ?? fallback.client.regime), initialBalance: Number(raw.client.initialBalance ?? 0), observations: String(raw.client.observations ?? ""),
+    },
     documents: (raw.documents ?? fallback.documents).map((x: any) => ({ label: x.label, category: x.category ?? "Fiscal", status: x.status as DocumentStatus, note: x.note ?? "" })),
     compliance: (raw.compliance ?? fallback.compliance).map((x: any) => ({ label: x.label, status: x.status as ComplianceStatus, note: x.note ?? "" })),
     cases: (raw.cases ?? raw.workCases ?? fallback.cases).map((x: any) => ({ label: x.label, caseType: (x.caseType ?? x.type ?? "Autre") as ClientDraft["cases"][number]["caseType"], status: x.status as CaseStatus, note: x.note ?? "" })),

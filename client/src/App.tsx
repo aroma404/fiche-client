@@ -1,42 +1,43 @@
-/** Atelier fiscal moderne — routes chargées depuis le registre de plugins. */
-import { Toaster } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+/** Atelier fiscal moderne — routes publiques, authentification et espaces privés par client. */
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
-import { SessionProvider } from "./core/session-store";
-import { AppShell } from "./app/AppShell";
-import { plugins } from "./core/plugin-registry";
+import { useAuth } from "./_core/hooks/useAuth";
+import { trpc } from "./lib/trpc";
+import { WorkspaceLayout } from "./components/workspace-layout";
+import { LoginPage, LandingPage, RegisterPage } from "./pages/auth-pages";
+import { AccountPage } from "./pages/account-page";
+import { ClientCasesPage, ClientCashPage, ClientCompliancePage, ClientDocumentsPage, ClientFichePage, ClientPaymentsPage, ClientPrintPage, ClientPrivacyPage, ClientsPage } from "./pages/clients-pages";
+import { TransfersPage } from "./pages/transfers-page";
+
+function ClientRoute({ clientId, children }: { clientId: number; children: React.ReactNode }) {
+  const { loading, user } = useAuth({ redirectOnUnauthenticated: true });
+  const query = trpc.clients.get.useQuery({ clientId }, { enabled: Boolean(user) && Number.isInteger(clientId) && clientId > 0 });
+  if (loading || query.isLoading) return <WorkspaceLayout><p className="text-sm text-[#627785]">Chargement du dossier sécurisé…</p></WorkspaceLayout>;
+  if (query.error || !query.data) return <WorkspaceLayout><div className="mx-auto max-w-xl rounded-xl border border-[#d5dfdc] bg-white p-8 text-center"><p className="font-serif text-3xl text-[#102a43]">Dossier indisponible</p><p className="mt-3 text-sm leading-6 text-[#627785]">Ce dossier est introuvable ou n’est pas rattaché au compte connecté.</p><a href="/clients" className="mt-6 inline-flex rounded-lg bg-[#0f766e] px-4 py-2.5 text-sm font-bold text-white">Retour aux dossiers</a></div></WorkspaceLayout>;
+  return <>{children}</>;
+}
 
 function Router() {
-  return (
-    <AppShell>
-      <Switch>
-        {plugins.map(({ id, route, component: PluginPage }) => <Route key={id} path={route}>{() => <PluginPage />}</Route>)}
-        <Route>{() => <div className="p-10 text-sm text-[#526775]">Cette page n’existe pas dans l’atelier fiscal.</div>}</Route>
-      </Switch>
-    </AppShell>
-  );
+  return <Switch>
+    <Route path="/" component={LandingPage} />
+    <Route path="/connexion" component={LoginPage} />
+    <Route path="/creer-un-compte" component={RegisterPage} />
+    <Route path="/clients" component={ClientsPage} />
+    <Route path="/clients/:clientId/fiche">{params => <ClientRoute clientId={Number(params.clientId)}><ClientFichePage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
+    <Route path="/clients/:clientId/documents">{params => <ClientRoute clientId={Number(params.clientId)}><ClientDocumentsPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
+    <Route path="/clients/:clientId/conformite">{params => <ClientRoute clientId={Number(params.clientId)}><ClientCompliancePage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
+    <Route path="/clients/:clientId/dossiers">{params => <ClientRoute clientId={Number(params.clientId)}><ClientCasesPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
+    <Route path="/clients/:clientId/paiements">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPaymentsPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
+    <Route path="/clients/:clientId/caisse">{params => <ClientRoute clientId={Number(params.clientId)}><ClientCashPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
+    <Route path="/clients/:clientId/impression">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPrintPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
+    <Route path="/clients/:clientId/confidentialite">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPrivacyPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
+    <Route path="/transferts" component={TransfersPage} />
+    <Route path="/compte" component={AccountPage} />
+    <Route>{() => <LandingPage />}</Route>
+  </Switch>;
 }
 
-// NOTE: About Theme
-// - First choose a default theme according to your design style (dark or light bg), than change color palette in index.css
-//   to keep consistent foreground/background color across components
-// - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
-
-function App() {
-  return (
-    <ErrorBoundary>
-      <ThemeProvider defaultTheme="light">
-        <TooltipProvider>
-          <SessionProvider>
-            <Toaster position="top-right" />
-            <Router />
-          </SessionProvider>
-        </TooltipProvider>
-      </ThemeProvider>
-    </ErrorBoundary>
-  );
+export default function App() {
+  return <ErrorBoundary><ThemeProvider defaultTheme="light"><Router /></ThemeProvider></ErrorBoundary>;
 }
-
-export default App;

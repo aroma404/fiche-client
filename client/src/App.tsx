@@ -8,7 +8,7 @@ import { trpc } from "./lib/trpc";
 import { WorkspaceLayout } from "./components/workspace-layout";
 import { PrivateWorkspaceSkeleton } from "./components/private-workspace-skeleton";
 import { LoginPage, LandingPage, RegisterPage } from "./pages/auth-pages";
-import { type CachedModule, loadAccountPage, loadClientCasesPage, loadClientCashPage, loadClientCompliancePage, loadClientDocumentsPage, loadClientFichePage, loadClientPaymentsPage, loadClientPrintPage, loadClientsPage, loadDashboardPage, loadNewClientPage, loadTransfersPage } from "./routes/private-route-preload";
+import { type CachedModule, loadAccountPage, loadCabinetFinancePage, loadClientCompliancePage, loadClientDocumentsPage, loadClientFichePage, loadClientPaymentsPage, loadClientPrintPage, loadClientsPage, loadDashboardPage, loadNewClientPage, loadTransfersPage } from "./routes/private-route-preload";
 
 function preloadedRoute<Props extends object>(loader: CachedModule<{ default: ComponentType<Props> }>) {
   return function PreloadedRoute(props: Props) {
@@ -25,12 +25,11 @@ const ClientsPage = preloadedRoute(loadClientsPage);
 const ClientFichePage = preloadedRoute(loadClientFichePage);
 const ClientDocumentsPage = preloadedRoute(loadClientDocumentsPage);
 const ClientCompliancePage = preloadedRoute(loadClientCompliancePage);
-const ClientCasesPage = preloadedRoute(loadClientCasesPage);
 const ClientPaymentsPage = preloadedRoute(loadClientPaymentsPage);
-const ClientCashPage = preloadedRoute(loadClientCashPage);
 const ClientPrintPage = preloadedRoute(loadClientPrintPage);
 const DashboardPage = preloadedRoute(loadDashboardPage);
 const TransfersPage = preloadedRoute(loadTransfersPage);
+const CabinetFinancePage = preloadedRoute(loadCabinetFinancePage);
 
 function ClientRoute({ clientId, children }: { clientId: number; children: ReactNode }) {
   const { loading, user } = useAuth({ redirectOnUnauthenticated: true });
@@ -51,11 +50,10 @@ function Router() {
     <Route path="/clients/:clientId/fiche">{params => <ClientRoute clientId={Number(params.clientId)}><ClientFichePage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/documents">{params => <ClientRoute clientId={Number(params.clientId)}><ClientDocumentsPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/conformite">{params => <ClientRoute clientId={Number(params.clientId)}><ClientCompliancePage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
-    <Route path="/clients/:clientId/dossiers">{params => <ClientRoute clientId={Number(params.clientId)}><ClientCasesPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/paiements">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPaymentsPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
-    <Route path="/clients/:clientId/caisse">{params => <ClientRoute clientId={Number(params.clientId)}><ClientCashPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/impression">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPrintPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/transferts" component={TransfersPage} />
+    <Route path="/finances" component={CabinetFinancePage} />
     <Route path="/compte" component={AccountPage} />
     <Route>{() => <LandingPage />}</Route>
   </Switch>;
@@ -63,7 +61,7 @@ function Router() {
 
 function SessionWarmup() {
   const [location] = useLocation();
-  const isPrivateRoute = location === "/dashboard" || location === "/clients" || location.startsWith("/clients/") || location === "/transferts" || location === "/compte";
+  const isPrivateRoute = location === "/dashboard" || location === "/clients" || location.startsWith("/clients/") || location === "/finances" || location === "/transferts" || location === "/compte";
   trpc.account.me.useQuery(undefined, { enabled: isPrivateRoute, staleTime: 60_000, retry: false, refetchOnWindowFocus: false });
   return null;
 }

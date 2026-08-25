@@ -22,7 +22,7 @@ describe("feuille Accueil Excel", () => {
     expect(accueil.A6.v).toBe("Date de préparation");
     expect(accueil.C6.v).toContain("25/08/2026");
     expect(accueil.G6.l?.Target).toBe("#'Fiche 1'!A1");
-    expect(accueil["!ref"]).toBe("A1:J13");
+    expect(accueil["!ref"]).toBe("A1:J11");
     const { BlobReader, TextWriter, ZipReader } = await import("@zip.js/zip.js");
     const zip = new ZipReader(new BlobReader(archive.blob));
     const sheet = (await zip.getEntries()).find(entry => entry.filename === "xl/worksheets/sheet1.xml");

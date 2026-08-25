@@ -2,7 +2,7 @@
 
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { accounts, clientCashEntries, clientCompliance, clientDocuments, clientPayments, clients, clientWorkCases, exportAudit } from "../../drizzle/schema";
+import { accounts, cabinetFinanceEntries, clientCompliance, clientDocuments, clients, clientWorkCases, exportAudit } from "../../drizzle/schema";
 import { requireCurrentAccount } from "../account-context";
 import { getClientBundles, getDb } from "../db";
 import { publicProcedure, router } from "../_core/trpc";
@@ -23,7 +23,7 @@ export const transfersRouter = router({
 
   previewImport: publicProcedure.input(importPayload).mutation(async ({ ctx, input }) => {
     await requireCurrentAccount(ctx.req);
-    return { schemaVersion: input.schemaVersion, clientCount: input.clients.length, names: input.clients.map(item => item.client.fullName), documentCount: input.clients.reduce((total, item) => total + item.documents.length, 0), paymentCount: input.clients.reduce((total, item) => total + item.payments.length, 0) };
+    return { schemaVersion: input.schemaVersion, clientCount: input.clients.length, names: input.clients.map(item => item.client.fullName), documentCount: input.clients.reduce((total, item) => total + item.documents.length, 0), paymentCount: input.clients.reduce((total, item) => total + (item.financeEntries.length || item.payments.length), 0) };
   }),
 
   commitImport: publicProcedure.input(importPayload).mutation(async ({ ctx, input }) => {
@@ -39,8 +39,11 @@ export const transfersRouter = router({
         if (bundle.documents.length) await tx.insert(clientDocuments).values(bundle.documents.map(item => ({ clientId, ...item })));
         if (bundle.compliance.length) await tx.insert(clientCompliance).values(bundle.compliance.map(item => ({ clientId, ...item })));
         if (bundle.cases.length) await tx.insert(clientWorkCases).values(bundle.cases.map(item => ({ clientId, ...item })));
-        if (bundle.payments.length) await tx.insert(clientPayments).values(bundle.payments.map(item => ({ clientId, ...item, amount: item.amount.toFixed(2) })));
-        if (bundle.cashEntries.length) await tx.insert(clientCashEntries).values(bundle.cashEntries.map(item => ({ clientId, ...item, amount: item.amount.toFixed(2) })));
+        const financeEntries = bundle.financeEntries.length ? bundle.financeEntries : [
+          ...bundle.payments.map(item => ({ entryDate: item.paymentDate, category: "Paiement" as const, direction: "Entrée" as const, label: item.label, reference: item.reference, amount: item.amount, note: "" })),
+          ...bundle.cashEntries.map(item => ({ entryDate: item.entryDate, category: "Caisse" as const, direction: item.direction, label: item.label, reference: "", amount: item.amount, note: "" })),
+        ];
+        if (financeEntries.length) await tx.insert(cabinetFinanceEntries).values(financeEntries.map(item => ({ ...item, accountId: account.id, clientId, amount: item.amount.toFixed(2) })));
       }
       return ids;
     });

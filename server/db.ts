@@ -1,7 +1,7 @@
 /** Atelier fiscal moderne — accès base de données et opérations sécurisées liées au compte. */
 import { and, eq, inArray } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accounts, clientCashEntries, clientCompliance, clientDocuments, clientPayments, clients, clientWorkCases, InsertUser, users } from "../drizzle/schema";
+import { accounts, cabinetFinanceEntries, clientCashEntries, clientCompliance, clientDocuments, clientPayments, clients, clientWorkCases, InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -116,14 +116,15 @@ export async function getClientBundle(accountId: number, clientId: number) {
   if (!db) throw new Error("La base de données est indisponible.");
   const client = await getOwnedClient(accountId, clientId);
   if (!client) return null;
-  const [documents, compliance, cases, payments, cashEntries] = await Promise.all([
+  const [documents, compliance, cases, payments, cashEntries, financeEntries] = await Promise.all([
     db.select().from(clientDocuments).where(eq(clientDocuments.clientId, clientId)),
     db.select().from(clientCompliance).where(eq(clientCompliance.clientId, clientId)),
     db.select().from(clientWorkCases).where(eq(clientWorkCases.clientId, clientId)),
     db.select().from(clientPayments).where(eq(clientPayments.clientId, clientId)),
     db.select().from(clientCashEntries).where(eq(clientCashEntries.clientId, clientId)),
+    db.select().from(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.clientId, clientId), eq(cabinetFinanceEntries.accountId, accountId))),
   ]);
-  return { client, documents, compliance, cases, payments, cashEntries };
+  return { client, documents, compliance, cases, payments, cashEntries, financeEntries };
 }
 
 export async function getClientBundles(accountId: number, clientIds?: number[]) {

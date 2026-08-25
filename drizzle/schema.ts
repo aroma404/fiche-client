@@ -53,7 +53,7 @@ export const clients = mysqlTable("clients", {
   fullName: varchar("fullName", { length: 220 }).notNull(),
   activity: varchar("activity", { length: 220 }).default(""),
   legalForm: varchar("legalForm", { length: 80 }).default("Personne physique"),
-  clientType: varchar("clientType", { length: 80 }).default("Particulier"),
+  clientType: varchar("clientType", { length: 80 }).default("Nouveau client"),
   status: varchar("status", { length: 60 }).default("Actif"),
   commune: varchar("commune", { length: 160 }).default(""),
   contact: varchar("contact", { length: 160 }).default(""),
@@ -62,7 +62,8 @@ export const clients = mysqlTable("clients", {
   bp: varchar("bp", { length: 80 }).default(""),
   taxArticle: varchar("taxArticle", { length: 80 }).default(""),
   nin: varchar("nin", { length: 80 }).default(""),
-  regime: varchar("regime", { length: 80 }).default("Principal"),
+  regime: varchar("regime", { length: 80 }).default("Régime réel"),
+  taxCenter: varchar("taxCenter", { length: 20 }).default("CDI"),
   initialBalance: decimal("initialBalance", { precision: 14, scale: 2 }).default("0.00").notNull(),
   observations: text("observations"),
   archivedAt: timestamp("archivedAt"),
@@ -120,6 +121,21 @@ export const clientCashEntries = mysqlTable("client_cash_entries", {
   amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, table => [index("client_cash_entries_client_idx").on(table.clientId)]);
+
+/** Registre financier du cabinet, isolé par compte et rattachable facultativement à un client. */
+export const cabinetFinanceEntries = mysqlTable("cabinet_finance_entries", {
+  id: int("id").autoincrement().primaryKey(),
+  accountId: int("accountId").notNull(),
+  clientId: int("clientId"),
+  entryDate: varchar("entryDate", { length: 30 }).notNull(),
+  category: mysqlEnum("category", ["Paiement", "Caisse"]).notNull(),
+  direction: mysqlEnum("direction", ["Entrée", "Sortie"]).notNull(),
+  label: varchar("label", { length: 180 }).notNull(),
+  reference: varchar("reference", { length: 160 }).default(""),
+  amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
+  note: varchar("note", { length: 500 }).default(""),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+}, table => [index("cabinet_finance_account_date_idx").on(table.accountId, table.entryDate), index("cabinet_finance_client_idx").on(table.clientId)]);
 
 export const exportAudit = mysqlTable("export_audit", {
   id: int("id").autoincrement().primaryKey(),

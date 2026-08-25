@@ -29,6 +29,13 @@
       "when": 1787653149793,
       "tag": "0003_ordinary_raider",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1787682609759,
+      "tag": "0004_daffy_killer_shrike",
+      "breakpoints": true
     }
   ]
 }

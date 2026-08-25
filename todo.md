@@ -69,3 +69,6 @@
 - [x] Reproduire et corriger les erreurs de rechargement des pages publiques et privées, y compris la restauration de session et des routes différées.
 - [x] Supprimer les micro-attentes perceptibles au rechargement et au passage entre pages privées par une restauration visuelle continue et des données préparées.
 - [x] Vérifier par navigateur le rechargement de pages publiques et privées, la restauration de session et l’absence de période visuellement vide.
+- [x] Déplacer Solde et observations vers la fiche Paiements du client et retirer la rubrique Dossiers de la fiche.
+- [x] Ajouter les sélections client : Régime fiscal (réel, réel simplifié, IFU), forme juridique (personne physique ou morale), statut (actif ou radié), type (nouveau ou ancien) et centre d’impôt (CDI ou CPI).
+- [x] Créer un espace financier propre au cabinet pour saisir paiements et caisse, tout en conservant dans chaque client uniquement ses opérations associées.

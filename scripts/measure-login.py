@@ -145,6 +145,17 @@ async def main() -> None:
             clients_fallback_seen = await page.evaluate("() => Boolean(window.__ficheFallbackSeen)")
             clients_surface = await reload_with_boot_shell(page, "Dossiers clients")
             clients_reload_url = page.url
+            await page.locator('aside nav a[href="/finances"]').hover()
+            await page.wait_for_timeout(300)
+            finances_started_at = time.perf_counter()
+            await asyncio.gather(
+                page.wait_for_url("**/finances"),
+                page.locator('aside nav a[href="/finances"]').click(),
+            )
+            await page.get_by_role("heading", name="Finances du cabinet").wait_for(timeout=5000)
+            finances_navigation_ms = round((time.perf_counter() - finances_started_at) * 1000)
+            finances_surface = await reload_with_boot_shell(page, "Finances du cabinet")
+            finances_reload_url = page.url
             await page.locator('aside nav a[href="/transferts"]').hover()
             await page.wait_for_timeout(300)
             await start_fallback_observer(page)
@@ -170,12 +181,13 @@ async def main() -> None:
                 "loginResponseMs": login_response_ms,
                 "sessionResponseMs": session_response_ms,
                 "clientsNavigationMs": clients_navigation_ms,
+                "financesNavigationMs": finances_navigation_ms,
                 "transfersNavigationMs": transfers_navigation_ms,
                 "clientsFallbackSeen": clients_fallback_seen,
                 "transfersFallbackSeen": transfers_fallback_seen,
-                "reloadUrls": [dashboard_reload_url, clients_reload_url, transfers_reload_url],
+                "reloadUrls": [dashboard_reload_url, clients_reload_url, finances_reload_url, transfers_reload_url],
                 "publicReloadUrl": public_reload_url,
-                "visualSurface": {"dashboard": dashboard_surface, "clients": clients_surface, "transfers": transfers_surface, "public": public_surface},
+                "visualSurface": {"dashboard": dashboard_surface, "clients": clients_surface, "finances": finances_surface, "transfers": transfers_surface, "public": public_surface},
                 "reloadErrors": reload_errors,
                 "privateCalls": distinct_calls,
                 "privateCallCount": len(distinct_calls),

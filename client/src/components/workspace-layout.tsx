@@ -5,7 +5,7 @@ import { FastPrivateLink } from "@/components/fast-private-link";
 import { PrivateWorkspaceSkeleton } from "@/components/private-workspace-skeleton";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
-import { Download, LayoutDashboard, Plus, Search, Users } from "lucide-react";
+import { Download, Landmark, LayoutDashboard, Plus, Search, Users } from "lucide-react";
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
 import { useLocation } from "wouter";
 import { preloadPrivateRoute, prewarmCorePrivateRoutes } from "@/routes/private-route-preload";
@@ -13,6 +13,7 @@ import { preloadPrivateRoute, prewarmCorePrivateRoutes } from "@/routes/private-
 const appLinks = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/clients", label: "Dossiers clients", icon: Users },
+  { href: "/finances", label: "Finances du cabinet", icon: Landmark },
   { href: "/transferts", label: "Importer / exporter", icon: Download },
 ];
 type WorkspaceClient = { id: number; fullName: string; archivedAt: Date | string | null; activity: string | null; commune: string | null; contact: string | null; nif: string | null; regime: string | null; legalForm: string | null; status: string | null; initialBalance: number | string | null; updatedAt: Date | string };
@@ -24,7 +25,7 @@ export function useWorkspaceClients() {
   return value;
 }
 
-function sectionTitle(location: string) { if (location.startsWith("/dashboard")) return "Tableau de bord"; if (location.startsWith("/clients")) return "Dossiers clients"; if (location.startsWith("/transferts")) return "Importation et exportation"; return "Mon compte"; }
+function sectionTitle(location: string) { if (location.startsWith("/dashboard")) return "Tableau de bord"; if (location.startsWith("/clients")) return "Dossiers clients"; if (location.startsWith("/finances")) return "Finances du cabinet"; if (location.startsWith("/transferts")) return "Importation et exportation"; return "Mon compte"; }
 function maskedEmail(email: string) { const [local = "", domain = ""] = email.split("@"); return `${local.slice(0, 1)}${local.length > 1 ? "•••" : ""}@${domain}`; }
 
 export function WorkspaceLayout({ children }: { children: ReactNode }) {

@@ -3,10 +3,11 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import { accountSessions, accounts, clients, exportAudit } from "../drizzle/schema";
+import { accountSessions, accounts, cabinetFinanceEntries, clients, exportAudit } from "../drizzle/schema";
 import { getDb, getOwnedClient } from "./db";
 import { signAccountSession } from "./auth/session";
 import { clientsRouter } from "./routers/clients";
+import { cabinetFinanceRouter } from "./routers/cabinet-finance";
 import { transfersRouter } from "./routers/transfers";
 
 const integrationEnabled = Boolean(process.env.DATABASE_URL);
@@ -40,6 +41,7 @@ suite("isolation persistante A/B", () => {
     const accountIds = [accountA, accountB].filter(Boolean);
     const clientIds = [clientA, importedForB].filter(Boolean);
     if (accountIds.length) await db.delete(exportAudit).where(inArray(exportAudit.accountId, accountIds));
+    if (accountIds.length) await db.delete(cabinetFinanceEntries).where(inArray(cabinetFinanceEntries.accountId, accountIds));
     if (clientIds.length) await db.delete(clients).where(inArray(clients.id, clientIds));
     if (accountIds.length) await db.delete(accountSessions).where(inArray(accountSessions.accountId, accountIds));
     if (accountIds.length) await db.delete(accounts).where(inArray(accounts.id, accountIds));
@@ -66,5 +68,15 @@ suite("isolation persistante A/B", () => {
     importedForB = imported.clientIds[0];
     await expect(getOwnedClient(accountB, importedForB)).resolves.toMatchObject({ accountId: accountB });
     await expect(getOwnedClient(accountA, importedForB)).resolves.toBeNull();
+  });
+
+  it("isole les opérations financières du cabinet entre les comptes", async () => {
+    const tokenA = await signAccountSession(accountA, sessionA); const tokenB = await signAccountSession(accountB, sessionB);
+    const financeA = cabinetFinanceRouter.createCaller(contextFor(tokenA)); const financeB = cabinetFinanceRouter.createCaller(contextFor(tokenB));
+    const created = await financeA.create({ clientId: clientA, entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", label: "Règlement isolé", reference: "ITEST", amount: 1200, note: "Test nettoyé automatiquement" });
+    await expect(financeB.list()).resolves.toEqual([]);
+    await expect(financeB.create({ clientId: clientA, entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", label: "Tentative B", reference: "", amount: 1, note: "" })).rejects.toThrow("Client introuvable.");
+    await expect(financeB.remove({ entryId: created.entryId })).resolves.toEqual({ success: true });
+    await expect(financeA.list({ clientId: clientA })).resolves.toEqual([expect.objectContaining({ id: created.entryId, accountId: accountA, clientId: clientA })]);
   });
 });

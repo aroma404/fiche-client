@@ -10,12 +10,17 @@ import { publicProcedure, router } from "../_core/trpc";
 const documentStatus = z.enum(["Reçu", "À vérifier", "À demander", "Non requis"]);
 const complianceStatus = z.enum(["À vérifier", "Conforme", "À régulariser"]);
 const caseStatus = z.enum(["À préparer", "En cours", "Terminé"]);
+const legalForm = z.enum(["Personne physique", "Personne morale"]);
+const clientType = z.enum(["Nouveau client", "Ancien client"]);
+const clientStatus = z.enum(["Actif", "Radié"]);
+const fiscalRegime = z.enum(["Régime réel", "Régime réel simplifié", "Régime IFU"]);
+const taxCenter = z.enum(["CDI", "CPI"]);
 
 const clientInput = z.object({
   fullName: z.string().trim().min(2, "Indiquez le nom du client.").max(220), activity: z.string().max(220).default(""),
-  legalForm: z.string().max(80).default("Personne physique"), clientType: z.string().max(80).default("Particulier"), status: z.string().max(60).default("Actif"),
+  legalForm: legalForm.default("Personne physique"), clientType: clientType.default("Nouveau client"), status: clientStatus.default("Actif"),
   commune: z.string().max(160).default(""), contact: z.string().max(160).default(""), nif: z.string().max(80).default(""), rc: z.string().max(80).default(""),
-  bp: z.string().max(80).default(""), taxArticle: z.string().max(80).default(""), nin: z.string().max(80).default(""), regime: z.string().max(80).default("Principal"),
+  bp: z.string().max(80).default(""), taxArticle: z.string().max(80).default(""), nin: z.string().max(80).default(""), regime: fiscalRegime.default("Régime réel"), taxCenter: taxCenter.default("CDI"),
   initialBalance: z.number().finite().default(0), observations: z.string().max(8000).default(""),
 });
 
@@ -24,12 +29,13 @@ const complianceInput = z.object({ label: z.string().min(1).max(120), status: co
 const caseInput = z.object({ label: z.string().min(1).max(160), caseType: z.enum(["CDI", "CPI", "CASNOS", "Autre"]), status: caseStatus, note: z.string().max(500).default("") });
 const paymentInput = z.object({ paymentDate: z.string().min(4).max(30), label: z.string().min(1).max(180), reference: z.string().max(160).default(""), amount: z.number().finite() });
 const cashInput = z.object({ entryDate: z.string().min(4).max(30), label: z.string().min(1).max(180), direction: z.enum(["Entrée", "Sortie"]), amount: z.number().finite() });
+const financeEntryInput = z.object({ entryDate: z.string().min(4).max(30), category: z.enum(["Paiement", "Caisse"]), direction: z.enum(["Entrée", "Sortie"]), label: z.string().min(1).max(180), reference: z.string().max(160).default(""), amount: z.number().finite(), note: z.string().max(500).default("") });
 
-export const clientBundleInput = z.object({ client: clientInput, documents: z.array(documentInput).max(100), compliance: z.array(complianceInput).max(30), cases: z.array(caseInput).max(100), payments: z.array(paymentInput).max(500), cashEntries: z.array(cashInput).max(500) });
+export const clientBundleInput = z.object({ client: clientInput, documents: z.array(documentInput).max(100), compliance: z.array(complianceInput).max(30), cases: z.array(caseInput).max(100).default([]), payments: z.array(paymentInput).max(500).default([]), cashEntries: z.array(cashInput).max(500).default([]), financeEntries: z.array(financeEntryInput).max(1000).default([]) });
 
 const DEFAULT_DOCUMENTS = [["Cachet", "Identité"], ["G8", "Fiscal"], ["NIF", "Fiscal"], ["NIS", "Fiscal"], ["BP", "Fiscal"], ["Livres obligatoires", "Comptabilité"], ["G12", "Fiscal"], ["G12 bis", "Fiscal"], ["TAP / TFPC", "Fiscal"], ["G50 ter", "Fiscal"], ["301 bis", "Fiscal"], ["Extrait de rôle", "Fiscal"]] as const;
 const DEFAULT_COMPLIANCE = ["Déclaration CNAS", "Déclaration CASNOS", "Déclaration CACOBATPH"];
-const DEFAULT_CASES = [["Dossier CDI", "CDI"], ["Dossier CPI", "CPI"], ["Dossier CASNOS", "CASNOS"]] as const;
+const DEFAULT_CASES: Array<[string, "CDI" | "CPI" | "CASNOS" | "Autre"]> = [];
 
 export const clientsRouter = router({
   list: publicProcedure.input(z.object({ includeArchived: z.boolean().optional() }).optional()).query(async ({ ctx, input }) => {
@@ -56,7 +62,6 @@ export const clientsRouter = router({
       const clientId = Number(inserted[0]?.insertId);
       await tx.insert(clientDocuments).values(DEFAULT_DOCUMENTS.map(([label, category]) => ({ clientId, label, category, status: "À demander" as const, note: "" })));
       await tx.insert(clientCompliance).values(DEFAULT_COMPLIANCE.map(label => ({ clientId, label, status: "À vérifier" as const, note: "" })));
-      await tx.insert(clientWorkCases).values(DEFAULT_CASES.map(([label, caseType]) => ({ clientId, label, caseType, status: "À préparer" as const, note: "" })));
       return { clientId };
     });
   }),

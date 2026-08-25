@@ -72,3 +72,4 @@
 - [x] Déplacer Solde et observations vers la fiche Paiements du client et retirer la rubrique Dossiers de la fiche.
 - [x] Ajouter les sélections client : Régime fiscal (réel, réel simplifié, IFU), forme juridique (personne physique ou morale), statut (actif ou radié), type (nouveau ou ancien) et centre d’impôt (CDI ou CPI).
 - [x] Créer un espace financier propre au cabinet pour saisir paiements et caisse, tout en conservant dans chaque client uniquement ses opérations associées.
+- [x] Afficher la Convention d’utilisation sous l’option « Se souvenir de moi » dans le formulaire de connexion, avec accès à son contenu.

@@ -39,3 +39,4 @@
 - [x] Ajouter de vraies préférences de documents persistantes dans le compte, avec interface dédiée.
 - [x] Extraire les vues Impression et Import/Export vers des modules dédiés pour alléger les pages principales.
 - [x] Extraire les panneaux visuels d’Import/Export vers des composants dédiés afin que la page de route reste une coque légère.
+- [x] Retirer les accès et boutons visibles de gestion/sortie du compte dans la barre latérale, et placer la déconnexion uniquement dans Mon compte.

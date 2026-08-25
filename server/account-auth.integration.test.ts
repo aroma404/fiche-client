@@ -13,10 +13,10 @@ const updatedEmail = `auth-modifie-${randomUUID()}@exemple.test`;
 const password = "MotDePasseTemporaire!2026";
 
 function context(cookie = "") {
-  const cookies: { name: string; value: string }[] = [];
+  const cookies: { name: string; value: string; options?: Record<string, unknown> }[] = [];
   const cleared: string[] = [];
   return {
-    ctx: { req: { protocol: "https", headers: { cookie } }, res: { cookie: (name: string, value: string) => cookies.push({ name, value }), clearCookie: (name: string) => cleared.push(name) } } as any,
+    ctx: { req: { protocol: "https", headers: { cookie } }, res: { cookie: (name: string, value: string, options: Record<string, unknown>) => cookies.push({ name, value, options }), clearCookie: (name: string) => cleared.push(name) } } as any,
     cookies,
     cleared,
   };
@@ -31,15 +31,19 @@ suite("parcours d’authentification persistant", () => {
   it("inscrit un compte, le reconnecte, protège le changement d’e-mail et efface le compte", async () => {
     const first = context();
     const register = accountRouter.createCaller(first.ctx);
-    const created = await register.register({ fullName: "Compte temporaire", email, password });
+    const created = await register.register({ fullName: "Compte temporaire", email, password, acceptTerms: true, rememberMe: false });
     expect(created).toMatchObject({ fullName: "Compte temporaire", email });
     expect(first.cookies).toHaveLength(1);
+    expect(first.cookies[0].options?.maxAge).toBeUndefined();
 
     const firstCookie = `fiche_client_session=${first.cookies[0].value}`;
     await expect(accountRouter.createCaller(context(firstCookie).ctx).me()).resolves.toMatchObject({ id: created.id, email });
 
     const second = context();
-    await expect(accountRouter.createCaller(second.ctx).login({ email, password })).resolves.toMatchObject({ id: created.id });
+    await expect(accountRouter.createCaller(second.ctx).login({ email, password, rememberMe: true })).resolves.toMatchObject({ id: created.id });
+    expect(Number(second.cookies[0].options?.maxAge)).toBeGreaterThan(60 * 60 * 24 * 1_000);
+    const dbBeforeLogout = await getDb();
+    if (dbBeforeLogout) expect(await dbBeforeLogout.select().from(accountSessions).where(eq(accountSessions.accountId, created.id))).toEqual(expect.arrayContaining([expect.objectContaining({ rememberMe: false }), expect.objectContaining({ rememberMe: true })]));
     const secondCookie = `fiche_client_session=${second.cookies[0].value}`;
     const logout = context(secondCookie);
     await expect(accountRouter.createCaller(logout.ctx).logout()).resolves.toEqual({ success: true });

@@ -40,3 +40,10 @@
 - [x] Extraire les vues Impression et Import/Export vers des modules dédiés pour alléger les pages principales.
 - [x] Extraire les panneaux visuels d’Import/Export vers des composants dédiés afin que la page de route reste une coque légère.
 - [x] Retirer les accès et boutons visibles de gestion/sortie du compte dans la barre latérale, et placer la déconnexion uniquement dans Mon compte.
+- [x] Produire des exports complets et élégants par client, avec toutes les rubriques administratives dans des fichiers organisés.
+- [x] Déplacer la création de client vers une page dédiée indépendante de la liste des dossiers.
+- [x] Déplacer les règles de confidentialité vers une convention d’utilisation obligatoire lors de la création de compte.
+- [x] Ajouter l’option « Se souvenir de moi » et une session temporaire de cinq minutes sans persistance après fermeture lorsque l’option est désactivée.
+- [x] Retirer le texte long de confidentialité de la page du dossier client.
+- [x] Clarifier dans l’interface la session temporaire : cinq minutes au maximum et cookie supprimé à la fermeture du navigateur sans option de mémorisation.
+- [x] Ajouter une preuve de test pour les modes session temporaire et « Se souvenir de moi ».

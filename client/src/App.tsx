@@ -7,7 +7,8 @@ import { trpc } from "./lib/trpc";
 import { WorkspaceLayout } from "./components/workspace-layout";
 import { LoginPage, LandingPage, RegisterPage } from "./pages/auth-pages";
 import { AccountPage } from "./pages/account-page";
-import { ClientCasesPage, ClientCashPage, ClientCompliancePage, ClientDocumentsPage, ClientFichePage, ClientPaymentsPage, ClientPrintPage, ClientPrivacyPage, ClientsPage } from "./pages/clients-pages";
+import { NewClientPage } from "./features/clients/new-client-page";
+import { ClientCasesPage, ClientCashPage, ClientCompliancePage, ClientDocumentsPage, ClientFichePage, ClientPaymentsPage, ClientPrintPage, ClientsPage } from "./pages/clients-pages";
 import { DashboardPage } from "./pages/dashboard-page";
 import { TransfersPage } from "./pages/transfers-page";
 
@@ -25,6 +26,7 @@ function Router() {
     <Route path="/connexion" component={LoginPage} />
     <Route path="/creer-un-compte" component={RegisterPage} />
     <Route path="/dashboard" component={DashboardPage} />
+    <Route path="/clients/nouveau" component={NewClientPage} />
     <Route path="/clients" component={ClientsPage} />
     <Route path="/clients/:clientId/fiche">{params => <ClientRoute clientId={Number(params.clientId)}><ClientFichePage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/documents">{params => <ClientRoute clientId={Number(params.clientId)}><ClientDocumentsPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
@@ -33,7 +35,6 @@ function Router() {
     <Route path="/clients/:clientId/paiements">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPaymentsPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/caisse">{params => <ClientRoute clientId={Number(params.clientId)}><ClientCashPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/impression">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPrintPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
-    <Route path="/clients/:clientId/confidentialite">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPrivacyPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/transferts" component={TransfersPage} />
     <Route path="/compte" component={AccountPage} />
     <Route>{() => <LandingPage />}</Route>

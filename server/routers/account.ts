@@ -20,21 +20,18 @@ function publicAccount(account: { id: number; fullName: string; email: string; p
   return { id: account.id, fullName: account.fullName, email: account.email, preferredExportFormat: account.preferredExportFormat, preferredDocumentMode: account.preferredDocumentMode };
 }
 
-function writeSessionCookie(ctx: { req: Parameters<typeof getSessionCookieOptions>[0]; res: { cookie: Function } }, token: string) {
-  ctx.res.cookie(ACCOUNT_SESSION_COOKIE, token, {
-    ...getSessionCookieOptions(ctx.req),
-    sameSite: "lax",
-    maxAge: sessionMaxAge(),
-  });
+function writeSessionCookie(ctx: { req: Parameters<typeof getSessionCookieOptions>[0]; res: { cookie: Function } }, token: string, rememberMe: boolean) {
+  const options = { ...getSessionCookieOptions(ctx.req), sameSite: "lax" as const };
+  ctx.res.cookie(ACCOUNT_SESSION_COOKIE, token, rememberMe ? { ...options, maxAge: sessionMaxAge(true) } : options);
 }
 
-async function createSession(ctx: { req: Parameters<typeof getSessionCookieOptions>[0]; res: { cookie: Function } }, accountId: number) {
+async function createSession(ctx: { req: Parameters<typeof getSessionCookieOptions>[0]; res: { cookie: Function } }, accountId: number, rememberMe: boolean) {
   const db = await getDb();
   if (!db) throw new Error("La base de données est indisponible.");
   const id = nanoid(40);
-  const expiresAt = new Date(Date.now() + sessionMaxAge());
-  await db.insert(accountSessions).values({ id, accountId, expiresAt });
-  writeSessionCookie(ctx, await signAccountSession(accountId, id));
+  const expiresAt = new Date(Date.now() + sessionMaxAge(rememberMe));
+  await db.insert(accountSessions).values({ id, accountId, expiresAt, rememberMe });
+  writeSessionCookie(ctx, await signAccountSession(accountId, id, rememberMe), rememberMe);
 }
 
 export const accountRouter = router({
@@ -47,6 +44,8 @@ export const accountRouter = router({
     fullName: z.string().trim().min(3, "Indiquez votre nom complet.").max(180),
     email: z.string().trim().email("Indiquez une adresse e-mail valide.").max(320),
     password: passwordSchema,
+    acceptTerms: z.literal(true, { error: "Vous devez accepter la convention d’utilisation." }),
+    rememberMe: z.boolean().default(false),
   })).mutation(async ({ ctx, input }) => {
     const db = await getDb();
     if (!db) throw new Error("La base de données est indisponible.");
@@ -55,14 +54,14 @@ export const accountRouter = router({
     const result = await db.insert(accounts).values({ fullName: input.fullName, email, passwordHash: await hashPassword(input.password) });
     const account = await getAccountByEmail(email);
     if (!account || !result[0]?.insertId) throw new Error("Impossible de créer le compte.");
-    await createSession(ctx, account.id);
+    await createSession(ctx, account.id, input.rememberMe);
     return publicAccount(account);
   }),
 
-  login: publicProcedure.input(z.object({ email: z.string().trim().email(), password: z.string().min(1) })).mutation(async ({ ctx, input }) => {
+  login: publicProcedure.input(z.object({ email: z.string().trim().email(), password: z.string().min(1), rememberMe: z.boolean().default(false) })).mutation(async ({ ctx, input }) => {
     const account = await getAccountByEmail(input.email.toLowerCase());
     if (!account || !(await verifyPassword(input.password, account.passwordHash))) throw new Error("E-mail ou mot de passe incorrect.");
-    await createSession(ctx, account.id);
+    await createSession(ctx, account.id, input.rememberMe);
     return publicAccount(account);
   }),
 

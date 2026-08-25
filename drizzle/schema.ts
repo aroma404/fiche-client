@@ -1,5 +1,5 @@
 /** Atelier fiscal moderne — schéma relationnel isolant les dossiers par compte connecté. */
-import { decimal, index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { boolean, decimal, index, int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -33,6 +33,7 @@ export const accounts = mysqlTable("accounts", {
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
   preferredExportFormat: mysqlEnum("preferredExportFormat", ["json", "xlsx"]).default("xlsx").notNull(),
   preferredDocumentMode: mysqlEnum("preferredDocumentMode", ["pdf", "print"]).default("pdf").notNull(),
+  termsAcceptedAt: timestamp("termsAcceptedAt").defaultNow().notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [uniqueIndex("accounts_email_unique").on(table.email)]);
@@ -41,6 +42,7 @@ export const accountSessions = mysqlTable("account_sessions", {
   id: varchar("id", { length: 64 }).primaryKey(),
   accountId: int("accountId").notNull(),
   expiresAt: timestamp("expiresAt").notNull(),
+  rememberMe: boolean("rememberMe").default(false).notNull(),
   revokedAt: timestamp("revokedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, table => [index("account_sessions_account_idx").on(table.accountId)]);

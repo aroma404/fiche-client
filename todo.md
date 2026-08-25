@@ -50,3 +50,6 @@
 - [x] Ouvrir l’export Excel sur la fiche complète du client et transformer la vue d’ensemble en couverture administrative professionnelle.
 - [x] Ajouter une première feuille Excel de navigation avec liens internes vers chaque fiche client et table d’archive.
 - [x] Transformer Accueil en tableau de bord à icônes et liens internes, sans modifier ni fusionner les feuilles de détail.
+- [x] Améliorer les listes déroulantes et le bouton d’activation de l’export.
+- [x] Demander systématiquement la protection facultative par mot de passe avant chaque export, avec ZIP chiffré lorsque l’utilisateur la choisit.
+- [x] Ajouter une liste déroulante stylée pour le périmètre d’export et un bouton unique d’activation avec état contrôlé.

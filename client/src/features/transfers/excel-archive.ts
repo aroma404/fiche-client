@@ -17,6 +17,7 @@ const sectionStyle: CellStyle = { font: { bold: true, color: { rgb: navy }, sz: 
 const labelStyle: CellStyle = { font: { bold: true, color: { rgb: "526775" }, sz: 9 }, fill: { fgColor: { rgb: "F5F8F7" } }, alignment: { vertical: "center", wrapText: true } };
 const evenStyle: CellStyle = { fill: { fgColor: { rgb: "F7FAF8" } }, alignment: { vertical: "top", wrapText: true }, border: { bottom: { style: "hair", color: { rgb: "D7E0DF" } } } };
 const oddStyle: CellStyle = { fill: { fgColor: { rgb: "FFFFFF" } }, alignment: { vertical: "top", wrapText: true }, border: { bottom: { style: "hair", color: { rgb: "D7E0DF" } } } };
+const navigationStyle: CellStyle = { font: { bold: true, color: { rgb: "FFFFFF" }, sz: 10, underline: false }, fill: { fgColor: { rgb: teal } }, alignment: { vertical: "center" }, border: { top: { style: "thin", color: { rgb: "0B625D" } }, bottom: { style: "thin", color: { rgb: "0B625D" } }, left: { style: "thin", color: { rgb: "0B625D" } }, right: { style: "thin", color: { rgb: "0B625D" } } } };
 
 function tableSheet(title: string, subtitle: string, rows: ArchiveRow[], headers: string[], widths: number[]) {
   const ws = XLSXStyle.utils.aoa_to_sheet([[title], [subtitle], [], headers, ...rows.map(row => headers.map(header => row[header] ?? ""))]);
@@ -57,17 +58,40 @@ function detailedClientSheet(bundle: ClientDraft, index: number) {
   return ws;
 }
 
-function coverSheet(clients: ClientDraft[], exportedAt: string) {
+function coverSheet(clients: ClientDraft[], exportedAt: string, ficheNames: string[], archiveSheets: string[]) {
   const firstClient = clients.length === 1 ? clients[0]?.client.fullName : `${clients.length} dossiers clients`;
-  const ws = XLSXStyle.utils.aoa_to_sheet([["FICHE CLIENT IMPÔT — ARCHIVE COMPLÈTE"], [`${firstClient}`], ["Commencez par l’onglet « Fiche 1 » : il contient la fiche administrative complète du premier dossier."], [], ["Date de préparation", new Date(exportedAt).toLocaleString("fr-FR")], ["Dossiers inclus", clients.length], ["Organisation", "Fiches détaillées, puis tables de données réimportables."], ["Usage", "Vérifiez les fiches avant impression, transmission ou réimport."]]);
-  ws["!merges"] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 3 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 3 } }, { s: { r: 2, c: 0 }, e: { r: 2, c: 3 } }];
-  ws["!cols"] = [{ wch: 24 }, { wch: 60 }, { wch: 22 }, { wch: 18 }];
-  ws["!rows"] = [{ hpt: 34 }, { hpt: 25 }, { hpt: 35 }];
+  const archiveCards = [
+    ["▤", "DOSSIERS CLIENTS", "Identité et références", "Clients", navy],
+    ["▧", "DOCUMENTS", "Pièces et statut", "Documents", teal],
+    ["✓", "CONFORMITÉ", "Obligations et suivi", "Conformité", "795B1D"],
+    ["▣", "DOSSIERS", "Suivi de travail", "Dossiers", navy],
+    ["€", "PAIEMENTS", "Versements saisis", "Paiements", teal],
+    ["↔", "CAISSE", "Entrées et sorties", "Caisse", "795B1D"],
+  ] as const;
+  const cards = [
+    ...clients.map((client, index) => ({ icon: "▣", title: `FICHE ${index + 1}`, subtitle: client.client.fullName || "Client", target: ficheNames[index], tone: teal })),
+    ...archiveCards.map(([icon, title, subtitle, target, tone]) => ({ icon, title, subtitle, target, tone })),
+  ];
+  const ws = XLSXStyle.utils.aoa_to_sheet([["FICHE CLIENT IMPÔT — ARCHIVE COMPLÈTE"], [`${firstClient}`], ["Tableau de navigation : choisissez une icône pour ouvrir une fiche ou une table du dossier."], [], ["Date de préparation", new Date(exportedAt).toLocaleString("fr-FR")], ["Dossiers inclus", clients.length], ["Organisation", "Chaque fiche et chaque registre restent dans leur feuille dédiée."], ["Usage", "Vérifiez les données avant impression, transmission ou réimport."], [], ["NAVIGATION RAPIDE"]]);
+  const merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }, { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } }, { s: { r: 9, c: 0 }, e: { r: 9, c: 6 } }];
+  ws["!cols"] = [{ wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 4 }, { wch: 18 }, { wch: 14 }, { wch: 16 }];
+  ws["!rows"] = [{ hpt: 34 }, { hpt: 25 }, { hpt: 35 }, {}, {}, {}, {}, {}, {}, { hpt: 24 }];
   ws["A1"].s = titleStyle;
   ws["A2"].s = { font: { bold: true, color: { rgb: teal }, sz: 14 }, fill: { fgColor: { rgb: pale } }, alignment: { vertical: "center" } };
   ws["A3"].s = subtitleStyle;
   ["A5", "A6", "A7", "A8"].forEach(cell => { if (ws[cell]) ws[cell].s = labelStyle; });
   ["B5", "B6", "B7", "B8"].forEach(cell => { if (ws[cell]) ws[cell].s = evenStyle; });
+  ws["A10"].s = sectionStyle;
+  cards.forEach((card, index) => {
+    const row = 11 + Math.floor(index / 2) * 4;
+    const col = index % 2 === 0 ? 0 : 4;
+    const key = XLSXStyle.utils.encode_cell({ r: row - 1, c: col });
+    ws[key] = { t: "s", v: `${card.icon}\n${card.title}\n${card.subtitle}\n→ Ouvrir`, l: { Target: `#'${card.target}'!A1`, Tooltip: `Ouvrir ${card.target}` }, s: { ...navigationStyle, font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12, underline: false }, fill: { fgColor: { rgb: card.tone } }, alignment: { horizontal: "center", vertical: "center", wrapText: true } } } as any;
+    merges.push({ s: { r: row - 1, c: col }, e: { r: row + 1, c: col + 2 } });
+    ws["!rows"]![row - 1] = { hpt: 25 }; ws["!rows"]![row] = { hpt: 25 }; ws["!rows"]![row + 1] = { hpt: 25 };
+  });
+  ws["!merges"] = merges;
+  ws["!ref"] = `A1:G${11 + Math.ceil(cards.length / 2) * 4}`;
   return ws;
 }
 
@@ -75,8 +99,9 @@ export function downloadStyledExcelArchive(payload: ExportPayload) {
   const clients = payload.clients.map(normalizeBundle);
   const workbook = XLSXStyle.utils.book_new();
   const detailNames = clients.map((_, index) => `Fiche ${index + 1}`);
+  const archiveSheetNames = ["Clients", "Documents", "Conformité", "Dossiers", "Paiements", "Caisse"];
+  XLSXStyle.utils.book_append_sheet(workbook, coverSheet(clients, payload.exportedAt, detailNames, archiveSheetNames), "Accueil");
   clients.forEach((bundle, index) => XLSXStyle.utils.book_append_sheet(workbook, detailedClientSheet(bundle, index), detailNames[index]));
-  XLSXStyle.utils.book_append_sheet(workbook, coverSheet(clients, payload.exportedAt), "Sommaire");
   const clientRows: ArchiveRow[] = clients.map((bundle, index) => ({ "Clé dossier": index + 1, "Nom / raison sociale": bundle.client.fullName, Activité: bundle.client.activity, "Forme juridique": bundle.client.legalForm, "Type de client": bundle.client.clientType, Statut: bundle.client.status, Commune: bundle.client.commune, Contact: bundle.client.contact, NIF: bundle.client.nif, "N° RC": bundle.client.rc, BP: bundle.client.bp, "Article d’imposition": bundle.client.taxArticle, NIN: bundle.client.nin, Régime: bundle.client.regime, "Solde initial (DA)": bundle.client.initialBalance, Observations: bundle.client.observations }));
   const docs: ArchiveRow[] = clients.flatMap((bundle, index) => bundle.documents.map(item => ({ "Clé dossier": index + 1, Document: item.label, Catégorie: item.category, Statut: item.status, Observation: item.note })));
   const compliance: ArchiveRow[] = clients.flatMap((bundle, index) => bundle.compliance.map(item => ({ "Clé dossier": index + 1, Obligation: item.label, Statut: item.status, Note: item.note })));

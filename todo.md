@@ -48,3 +48,5 @@
 - [x] Clarifier dans l’interface la session temporaire : cinq minutes au maximum et cookie supprimé à la fermeture du navigateur sans option de mémorisation.
 - [x] Ajouter une preuve de test pour les modes session temporaire et « Se souvenir de moi ».
 - [x] Ouvrir l’export Excel sur la fiche complète du client et transformer la vue d’ensemble en couverture administrative professionnelle.
+- [x] Ajouter une première feuille Excel de navigation avec liens internes vers chaque fiche client et table d’archive.
+- [x] Transformer Accueil en tableau de bord à icônes et liens internes, sans modifier ni fusionner les feuilles de détail.

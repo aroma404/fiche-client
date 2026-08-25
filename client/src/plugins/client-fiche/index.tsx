@@ -1,6 +1,7 @@
 /** Atelier fiscal moderne — fiche principale : informations structurées, sans données persistées. */
 
 import { CheckCircle2, FilePlus2 } from "lucide-react";
+import { AppSelect } from "@/components/form/app-select";
 import { Button } from "@/components/ui/button";
 import { PageHeader } from "@/components/page-header";
 import { SectionCard } from "@/components/section-card";
@@ -29,5 +30,5 @@ export default function FichePlugin() {
 }
 
 function SelectField({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) {
-  return <label className="grid gap-2"><span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#526775]">{label}</span><select value={value} onChange={(event) => onChange(event.target.value)} className="h-10 rounded-md border border-[#d7e0df] bg-[#fbfcfa] px-3 text-sm text-[#102a43] outline-none focus:ring-2 focus:ring-[#0f766e]">{options.map((option) => <option key={option}>{option}</option>)}</select></label>;
+  return <label className="grid gap-2"><span className="text-[11px] font-extrabold uppercase tracking-[0.08em] text-[#526775]">{label}</span><AppSelect value={value} onValueChange={onChange} options={options.map(option => ({ value: option, label: option }))} /></label>;
 }

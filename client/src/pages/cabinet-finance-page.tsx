@@ -1,6 +1,7 @@
 /** Espace financier du cabinet : chaque opération appartient au compte et peut viser un client. */
 
 import { PageTitle, useWorkspaceClients, WorkspaceLayout } from "@/components/workspace-layout";
+import { AppSelect } from "@/components/form/app-select";
 import { formatDA } from "@/lib/client-data";
 import { trpc } from "@/lib/trpc";
 import { ArrowDownRight, ArrowUpRight, Landmark, Plus, Trash2, WalletCards } from "lucide-react";
@@ -97,9 +98,9 @@ function CabinetFinanceContent() {
       <form onSubmit={submit} className="order-1 rounded-2xl border border-[#c8ddd5] bg-[#edf7f3] p-5 lg:order-2">
         <div className="flex items-start gap-3"><span className="rounded-xl bg-white p-2.5 text-[#0f766e]"><Landmark size={20} /></span><div><h2 className="font-serif text-2xl text-[#102a43]">Nouvelle opération</h2><p className="mt-1 text-sm leading-5 text-[#627785]">Choisissez un client uniquement lorsque le mouvement le concerne.</p></div></div>
         <div className="mt-6 space-y-4">
-          <Field label="Client associé (facultatif)"><select value={form.clientId} onChange={event => setForm({ ...form, clientId: event.target.value })}><option value="">Opération générale du cabinet</option>{clients.filter(client => !client.archivedAt).map(client => <option key={client.id} value={client.id}>{client.fullName}</option>)}</select></Field>
-          <div className="grid grid-cols-2 gap-3"><Field label="Date"><input type="date" value={form.entryDate} onChange={event => setForm({ ...form, entryDate: event.target.value })} /></Field><Field label="Nature"><select value={form.category} onChange={event => setForm({ ...form, category: event.target.value as FinanceForm["category"] })}><option>Paiement</option><option>Caisse</option></select></Field></div>
-          <div className="grid grid-cols-2 gap-3"><Field label="Sens"><select value={form.direction} onChange={event => setForm({ ...form, direction: event.target.value as FinanceForm["direction"] })}><option>Entrée</option><option>Sortie</option></select></Field><Field label="Montant (DA)"><input type="number" min="0" step="0.01" value={form.amount} onChange={event => setForm({ ...form, amount: event.target.value })} placeholder="0,00" /></Field></div>
+          <Field label="Client associé (facultatif)"><AppSelect value={form.clientId} onValueChange={value => setForm({ ...form, clientId: value })} options={[{ value: "", label: "Opération générale du cabinet" }, ...clients.filter(client => !client.archivedAt).map(client => ({ value: String(client.id), label: client.fullName }))]} /></Field>
+          <div className="grid grid-cols-2 gap-3"><Field label="Date"><input type="date" value={form.entryDate} onChange={event => setForm({ ...form, entryDate: event.target.value })} /></Field><Field label="Nature"><AppSelect value={form.category} onValueChange={value => setForm({ ...form, category: value as FinanceForm["category"] })} options={[{ value: "Paiement", label: "Paiement" }, { value: "Caisse", label: "Caisse" }]} /></Field></div>
+          <div className="grid grid-cols-2 gap-3"><Field label="Sens"><AppSelect value={form.direction} onValueChange={value => setForm({ ...form, direction: value as FinanceForm["direction"] })} options={[{ value: "Entrée", label: "Entrée" }, { value: "Sortie", label: "Sortie" }]} /></Field><Field label="Montant (DA)"><input type="number" min="0" step="0.01" value={form.amount} onChange={event => setForm({ ...form, amount: event.target.value })} placeholder="0,00" /></Field></div>
           <Field label="Libellé"><input value={form.label} onChange={event => setForm({ ...form, label: event.target.value })} placeholder="Ex. règlement, dépense, caisse" /></Field>
           <Field label="Référence"><input value={form.reference} onChange={event => setForm({ ...form, reference: event.target.value })} placeholder="Facultative" /></Field>
           <Field label="Observation"><textarea value={form.note} onChange={event => setForm({ ...form, note: event.target.value })} placeholder="Précision facultative" /></Field>

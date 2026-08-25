@@ -1,0 +1,20 @@
+import { describe, expect, it } from "vitest";
+import { createClientDraft, financeEntriesForBundle, isOperationalClient } from "./client-data";
+
+describe("règles client partagées", () => {
+  it("ne compte comme actif que les statuts opérationnels non archivés", () => {
+    expect(isOperationalClient({ status: "Actif", archivedAt: null }, ["Actif"])).toBe(true);
+    expect(isOperationalClient({ status: "Radié", archivedAt: null }, ["Actif"])).toBe(false);
+    expect(isOperationalClient({ status: "Actif", archivedAt: new Date() }, ["Actif"])).toBe(false);
+    expect(isOperationalClient({ status: "En attente", archivedAt: null }, ["Actif", "En attente"])).toBe(true);
+  });
+
+  it("utilise le registre financier lorsqu’il existe et convertit les anciennes lignes une seule fois", () => {
+    const draft = createClientDraft("Dossier de test");
+    draft.payments = [{ paymentDate: "2026-08-25", label: "Ancien paiement", reference: "A1", amount: 100 }];
+    draft.cashEntries = [{ entryDate: "2026-08-25", label: "Ancienne caisse", direction: "Sortie", amount: 25 }];
+    expect(financeEntriesForBundle(draft)).toEqual(expect.arrayContaining([expect.objectContaining({ category: "Paiement", direction: "Entrée", amount: 100 }), expect.objectContaining({ category: "Caisse", direction: "Sortie", amount: 25 })]));
+    draft.financeEntries = [{ entryDate: "2026-08-26", category: "Paiement", direction: "Entrée", label: "Registre", reference: "R1", amount: 250, note: "" }];
+    expect(financeEntriesForBundle(draft)).toEqual([expect.objectContaining({ label: "Registre", amount: 250 })]);
+  });
+});

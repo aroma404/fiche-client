@@ -9,7 +9,7 @@ import { WorkspaceLayout } from "./components/workspace-layout";
 import { PrivateWorkspaceSkeleton } from "./components/private-workspace-skeleton";
 import { LoginPage, LandingPage, RegisterPage } from "./pages/auth-pages";
 import { UsageConventionPage } from "./pages/usage-convention-page";
-import { type CachedModule, loadAccountPage, loadCabinetFinancePage, loadClientCompliancePage, loadClientDocumentsPage, loadClientFichePage, loadClientPaymentsPage, loadClientPrintPage, loadClientsPage, loadDashboardPage, loadNewClientPage, loadTransfersPage } from "./routes/private-route-preload";
+import { type CachedModule, loadAccountPage, loadCabinetFinancePage, loadClientCompliancePage, loadClientDocumentsPage, loadClientFichePage, loadClientPaymentsPage, loadClientPrintPage, loadClientsPage, loadDashboardPage, loadNewClientPage, loadProgramSettingsPage, loadTransfersPage } from "./routes/private-route-preload";
 
 function preloadedRoute<Props extends object>(loader: CachedModule<{ default: ComponentType<Props> }>) {
   return function PreloadedRoute(props: Props) {
@@ -21,6 +21,7 @@ function preloadedRoute<Props extends object>(loader: CachedModule<{ default: Co
 }
 
 const AccountPage = preloadedRoute(loadAccountPage);
+const ProgramSettingsPage = preloadedRoute(loadProgramSettingsPage);
 const NewClientPage = preloadedRoute(loadNewClientPage);
 const ClientsPage = preloadedRoute(loadClientsPage);
 const ClientFichePage = preloadedRoute(loadClientFichePage);
@@ -56,6 +57,7 @@ function Router() {
     <Route path="/clients/:clientId/impression">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPrintPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/transferts" component={TransfersPage} />
     <Route path="/finances" component={CabinetFinancePage} />
+    <Route path="/reglages" component={ProgramSettingsPage} />
     <Route path="/compte" component={AccountPage} />
     <Route>{() => <LandingPage />}</Route>
   </Switch>;
@@ -63,7 +65,7 @@ function Router() {
 
 function SessionWarmup() {
   const [location] = useLocation();
-  const isPrivateRoute = location === "/dashboard" || location === "/clients" || location.startsWith("/clients/") || location === "/finances" || location === "/transferts" || location === "/compte";
+  const isPrivateRoute = location === "/dashboard" || location === "/clients" || location.startsWith("/clients/") || location === "/finances" || location === "/transferts" || location === "/reglages" || location === "/compte";
   trpc.account.me.useQuery(undefined, { enabled: isPrivateRoute, staleTime: 60_000, retry: false, refetchOnWindowFocus: false });
   return null;
 }

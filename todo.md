@@ -77,3 +77,13 @@
 - [x] Remplacer l’encart repliable de convention par une option de type case à cocher sous Se souvenir de moi et un lien interne vers la page de convention.
 - [x] Rétablir la barre de navigation Fiche / Documents / Conformité / Paiements / Impression dans Paiements et observations, avec Paiements actif.
 - [x] Retirer la phrase descriptive sous le titre Paiements et observations.
+- [x] Corriger la sélection d’export afin que « tous les clients » inclue chaque client et que la sélection individuelle soit exacte.
+- [x] Rendre toute بطاقة client dans le sélecteur d’export cliquable, avec une zone de sélection claire et accessible.
+- [x] Unifier le design et le comportement des listes déroulantes dans les écrans du programme.
+- [x] Séparer Réglages du programme et Mon compte par une navigation dédiée plutôt qu’une page unique.
+- [x] Ajouter un registre de statuts administrables dans les réglages du programme, utilisable de façon cohérente dans le système.
+- [x] Regrouper les modules partagés et les points d’entrée d’import afin de réduire les dépendances répétées et faciliter l’ajout ou la suppression de fonctions.
+- [x] Structurer Activité : Agriculture, Artisanat, Auto-entrepreneur avec Micro-importation ou Prestation de services, et Registre de commerce avec catégorie puis activité.
+- [x] Extraire et intégrer فقط تصنيفات Registre de commerce والنشاطات الواردة في ملفات Excel المرفقة، دون إضافة خيارات خارج المطلوب.
+- [x] Unifier la source de vérité des statuts client, opérations financières et indicateurs Dashboard afin qu’un client radié ne soit jamais compté comme actif.
+- [x] Vérifier de bout en bout que toute modification d’un statut, paiement ou opération se reflète identiquement dans la fiche, Finances du cabinet, exports et Dashboard.

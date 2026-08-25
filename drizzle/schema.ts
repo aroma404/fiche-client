@@ -52,6 +52,10 @@ export const clients = mysqlTable("clients", {
   accountId: int("accountId").notNull(),
   fullName: varchar("fullName", { length: 220 }).notNull(),
   activity: varchar("activity", { length: 220 }).default(""),
+  activityKind: varchar("activityKind", { length: 80 }).default(""),
+  autoEntrepreneurActivity: varchar("autoEntrepreneurActivity", { length: 80 }).default(""),
+  rcActivityFamily: varchar("rcActivityFamily", { length: 10 }).default(""),
+  rcActivityCode: varchar("rcActivityCode", { length: 10 }).default(""),
   legalForm: varchar("legalForm", { length: 80 }).default("Personne physique"),
   clientType: varchar("clientType", { length: 80 }).default("Nouveau client"),
   status: varchar("status", { length: 60 }).default("Actif"),
@@ -70,6 +74,17 @@ export const clients = mysqlTable("clients", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("clients_account_idx").on(table.accountId), index("clients_account_name_idx").on(table.accountId, table.fullName)]);
+
+/** Statuts administrables des dossiers, strictement limités au compte propriétaire. */
+export const programClientStatuses = mysqlTable("program_client_statuses", {
+  id: int("id").autoincrement().primaryKey(),
+  accountId: int("accountId").notNull(),
+  label: varchar("label", { length: 60 }).notNull(),
+  isOperational: boolean("isOperational").default(true).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [index("program_client_statuses_account_idx").on(table.accountId), uniqueIndex("program_client_statuses_account_label_unique").on(table.accountId, table.label)]);
 
 export const clientDocuments = mysqlTable("client_documents", {
   id: int("id").autoincrement().primaryKey(),

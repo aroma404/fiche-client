@@ -4,7 +4,10 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { accounts, cabinetFinanceEntries, clientCompliance, clientDocuments, clients, clientWorkCases, exportAudit } from "../../drizzle/schema";
 import { requireCurrentAccount } from "../account-context";
+import { canonicalActivityLabel } from "../client-activity";
+import { canonicalFinanceEntries } from "../client-ledger";
 import { getClientBundles, getDb } from "../db";
+import { assertProgramClientStatus } from "../program-client-statuses";
 import { publicProcedure, router } from "../_core/trpc";
 import { clientBundleInput } from "./clients";
 
@@ -30,19 +33,17 @@ export const transfersRouter = router({
     const account = await requireCurrentAccount(ctx.req);
     const db = await getDb();
     if (!db) throw new Error("La base de données est indisponible.");
+    await Promise.all(input.clients.map(bundle => assertProgramClientStatus(db, account.id, bundle.client.status)));
     const createdIds = await db.transaction(async tx => {
       const ids: number[] = [];
       for (const bundle of input.clients) {
-        const created = await tx.insert(clients).values({ ...bundle.client, accountId: account.id, initialBalance: bundle.client.initialBalance.toFixed(2), observations: bundle.client.observations || null });
+        const created = await tx.insert(clients).values({ ...bundle.client, activity: canonicalActivityLabel(bundle.client), accountId: account.id, initialBalance: bundle.client.initialBalance.toFixed(2), observations: bundle.client.observations || null });
         const clientId = Number(created[0]?.insertId);
         ids.push(clientId);
         if (bundle.documents.length) await tx.insert(clientDocuments).values(bundle.documents.map(item => ({ clientId, ...item })));
         if (bundle.compliance.length) await tx.insert(clientCompliance).values(bundle.compliance.map(item => ({ clientId, ...item })));
         if (bundle.cases.length) await tx.insert(clientWorkCases).values(bundle.cases.map(item => ({ clientId, ...item })));
-        const financeEntries = bundle.financeEntries.length ? bundle.financeEntries : [
-          ...bundle.payments.map(item => ({ entryDate: item.paymentDate, category: "Paiement" as const, direction: "Entrée" as const, label: item.label, reference: item.reference, amount: item.amount, note: "" })),
-          ...bundle.cashEntries.map(item => ({ entryDate: item.entryDate, category: "Caisse" as const, direction: item.direction, label: item.label, reference: "", amount: item.amount, note: "" })),
-        ];
+        const financeEntries = canonicalFinanceEntries(bundle);
         if (financeEntries.length) await tx.insert(cabinetFinanceEntries).values(financeEntries.map(item => ({ ...item, accountId: account.id, clientId, amount: item.amount.toFixed(2) })));
       }
       return ids;

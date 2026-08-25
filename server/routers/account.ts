@@ -4,7 +4,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { parse } from "cookie";
 import { nanoid } from "nanoid";
 import { z } from "zod";
-import { accounts, accountSessions, clientCashEntries, clientCompliance, clientDocuments, clientPayments, clients, clientWorkCases, exportAudit } from "../../drizzle/schema";
+import { accounts, accountSessions, clientCashEntries, clientCompliance, clientDocuments, clientPayments, clients, clientWorkCases, exportAudit, programClientStatuses } from "../../drizzle/schema";
 import { getSessionCookieOptions } from "../_core/cookies";
 import { publicProcedure, router } from "../_core/trpc";
 import { getCurrentAccount, requireCurrentAccount } from "../account-context";
@@ -135,7 +135,7 @@ export const accountRouter = router({
       const ownedClients = await tx.select({ id: clients.id }).from(clients).where(eq(clients.accountId, account.id));
       const clientIds = ownedClients.map(client => client.id);
       if (clientIds.length) await Promise.all([tx.delete(clientDocuments).where(inArray(clientDocuments.clientId, clientIds)), tx.delete(clientCompliance).where(inArray(clientCompliance.clientId, clientIds)), tx.delete(clientWorkCases).where(inArray(clientWorkCases.clientId, clientIds)), tx.delete(clientPayments).where(inArray(clientPayments.clientId, clientIds)), tx.delete(clientCashEntries).where(inArray(clientCashEntries.clientId, clientIds)), tx.delete(clients).where(eq(clients.accountId, account.id))]);
-      await Promise.all([tx.delete(exportAudit).where(eq(exportAudit.accountId, account.id)), tx.delete(accountSessions).where(eq(accountSessions.accountId, account.id))]);
+      await Promise.all([tx.delete(exportAudit).where(eq(exportAudit.accountId, account.id)), tx.delete(programClientStatuses).where(eq(programClientStatuses.accountId, account.id)), tx.delete(accountSessions).where(eq(accountSessions.accountId, account.id))]);
       await tx.delete(accounts).where(eq(accounts.id, account.id));
     });
     ctx.res.clearCookie(ACCOUNT_SESSION_COOKIE, { ...getSessionCookieOptions(ctx.req), sameSite: "lax" });

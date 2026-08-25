@@ -2,8 +2,12 @@
 
 import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { clientCashEntries, clientCompliance, clientDocuments, clientPayments, clients, clientWorkCases } from "../../drizzle/schema";
+import { cabinetFinanceEntries, clientCashEntries, clientCompliance, clientDocuments, clientPayments, clients, clientWorkCases } from "../../drizzle/schema";
+import { isRegistreCommerceActivity, registreCommerceActivities } from "../../shared/registre-commerce-activities";
 import { getCurrentAccount, requireCurrentAccount } from "../account-context";
+import { canonicalActivityLabel } from "../client-activity";
+import { canonicalFinanceEntries } from "../client-ledger";
+import { assertProgramClientStatus } from "../program-client-statuses";
 import { getClientBundle, getDb, getOwnedClient } from "../db";
 import { publicProcedure, router } from "../_core/trpc";
 
@@ -12,16 +16,22 @@ const complianceStatus = z.enum(["À vérifier", "Conforme", "À régulariser"])
 const caseStatus = z.enum(["À préparer", "En cours", "Terminé"]);
 const legalForm = z.enum(["Personne physique", "Personne morale"]);
 const clientType = z.enum(["Nouveau client", "Ancien client"]);
-const clientStatus = z.enum(["Actif", "Radié"]);
+const clientStatus = z.string().trim().min(2, "Choisissez un statut.").max(60);
 const fiscalRegime = z.enum(["Régime réel", "Régime réel simplifié", "Régime IFU"]);
 const taxCenter = z.enum(["CDI", "CPI"]);
+const activityKind = z.enum(["", "Agriculture", "Artisanat", "Auto-entrepreneur", "Registre de commerce"]);
+const autoEntrepreneurActivity = z.enum(["", "Micro-importation", "Prestation de services"]);
 
 const clientInput = z.object({
   fullName: z.string().trim().min(2, "Indiquez le nom du client.").max(220), activity: z.string().max(220).default(""),
+  activityKind: activityKind.default(""), autoEntrepreneurActivity: autoEntrepreneurActivity.default(""), rcActivityFamily: z.string().max(10).default(""), rcActivityCode: z.string().max(10).default(""),
   legalForm: legalForm.default("Personne physique"), clientType: clientType.default("Nouveau client"), status: clientStatus.default("Actif"),
   commune: z.string().max(160).default(""), contact: z.string().max(160).default(""), nif: z.string().max(80).default(""), rc: z.string().max(80).default(""),
   bp: z.string().max(80).default(""), taxArticle: z.string().max(80).default(""), nin: z.string().max(80).default(""), regime: fiscalRegime.default("Régime réel"), taxCenter: taxCenter.default("CDI"),
   initialBalance: z.number().finite().default(0), observations: z.string().max(8000).default(""),
+}).superRefine((value, ctx) => {
+  if (value.activityKind === "Auto-entrepreneur" && !value.autoEntrepreneurActivity) ctx.addIssue({ code: "custom", path: ["autoEntrepreneurActivity"], message: "Choisissez Micro-importation ou Prestation de services." });
+  if (value.activityKind === "Registre de commerce" && !isRegistreCommerceActivity(value.rcActivityFamily, value.rcActivityCode)) ctx.addIssue({ code: "custom", path: ["rcActivityCode"], message: "Choisissez une activité valide de la nomenclature fournie." });
 });
 
 const documentInput = z.object({ label: z.string().min(1).max(120), category: z.string().max(100).default("Fiscal"), status: documentStatus, note: z.string().max(500).default("") });
@@ -57,8 +67,9 @@ export const clientsRouter = router({
     const account = await requireCurrentAccount(ctx.req);
     const db = await getDb();
     if (!db) throw new Error("La base de données est indisponible.");
+    await assertProgramClientStatus(db, account.id, input.status);
     return db.transaction(async tx => {
-      const inserted = await tx.insert(clients).values({ ...input, accountId: account.id, initialBalance: input.initialBalance.toFixed(2), observations: input.observations || null });
+      const inserted = await tx.insert(clients).values({ ...input, activity: canonicalActivityLabel(input), accountId: account.id, initialBalance: input.initialBalance.toFixed(2), observations: input.observations || null });
       const clientId = Number(inserted[0]?.insertId);
       await tx.insert(clientDocuments).values(DEFAULT_DOCUMENTS.map(([label, category]) => ({ clientId, label, category, status: "À demander" as const, note: "" })));
       await tx.insert(clientCompliance).values(DEFAULT_COMPLIANCE.map(label => ({ clientId, label, status: "À vérifier" as const, note: "" })));
@@ -71,14 +82,15 @@ export const clientsRouter = router({
     if (!(await getOwnedClient(account.id, input.clientId))) throw new Error("Client introuvable.");
     const db = await getDb();
     if (!db) throw new Error("La base de données est indisponible.");
+    await assertProgramClientStatus(db, account.id, input.data.client.status);
     await db.transaction(async tx => {
-      await tx.update(clients).set({ ...input.data.client, initialBalance: input.data.client.initialBalance.toFixed(2), observations: input.data.client.observations || null }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id)));
-      await Promise.all([tx.delete(clientDocuments).where(eq(clientDocuments.clientId, input.clientId)), tx.delete(clientCompliance).where(eq(clientCompliance.clientId, input.clientId)), tx.delete(clientWorkCases).where(eq(clientWorkCases.clientId, input.clientId)), tx.delete(clientPayments).where(eq(clientPayments.clientId, input.clientId)), tx.delete(clientCashEntries).where(eq(clientCashEntries.clientId, input.clientId))]);
+      await tx.update(clients).set({ ...input.data.client, activity: canonicalActivityLabel(input.data.client), initialBalance: input.data.client.initialBalance.toFixed(2), observations: input.data.client.observations || null }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id)));
+      await Promise.all([tx.delete(clientDocuments).where(eq(clientDocuments.clientId, input.clientId)), tx.delete(clientCompliance).where(eq(clientCompliance.clientId, input.clientId)), tx.delete(clientWorkCases).where(eq(clientWorkCases.clientId, input.clientId)), tx.delete(clientPayments).where(eq(clientPayments.clientId, input.clientId)), tx.delete(clientCashEntries).where(eq(clientCashEntries.clientId, input.clientId)), tx.delete(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.clientId, input.clientId), eq(cabinetFinanceEntries.accountId, account.id)))]);
       if (input.data.documents.length) await tx.insert(clientDocuments).values(input.data.documents.map(item => ({ clientId: input.clientId, ...item })));
       if (input.data.compliance.length) await tx.insert(clientCompliance).values(input.data.compliance.map(item => ({ clientId: input.clientId, ...item })));
       if (input.data.cases.length) await tx.insert(clientWorkCases).values(input.data.cases.map(item => ({ clientId: input.clientId, ...item })));
-      if (input.data.payments.length) await tx.insert(clientPayments).values(input.data.payments.map(item => ({ clientId: input.clientId, ...item, amount: item.amount.toFixed(2) })));
-      if (input.data.cashEntries.length) await tx.insert(clientCashEntries).values(input.data.cashEntries.map(item => ({ clientId: input.clientId, ...item, amount: item.amount.toFixed(2) })));
+      const financeEntries = canonicalFinanceEntries(input.data);
+      if (financeEntries.length) await tx.insert(cabinetFinanceEntries).values(financeEntries.map(item => ({ ...item, accountId: account.id, clientId: input.clientId, amount: item.amount.toFixed(2) })));
     });
     return { success: true } as const;
   }),

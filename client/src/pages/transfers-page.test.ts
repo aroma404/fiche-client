@@ -34,6 +34,16 @@ describe("parseImport", () => {
     expect(result.clients[0].client).not.toHaveProperty("accountId");
   });
 
+  it("préserve les champs d’activité structurée dans un Excel réimporté", () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([{ "Clé dossier": 1, "Nom / raison sociale": "Dossier RC", "Domaine d’activité": "Registre de commerce", "Catégorie RC": "123", "Code activité RC": "1234567890" }]), "Clients");
+    const file = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+
+    const result = parseImport("activite.xlsx", file);
+
+    expect(result.clients[0].client).toMatchObject({ fullName: "Dossier RC", activityKind: "Registre de commerce", rcActivityFamily: "123", rcActivityCode: "1234567890" });
+  });
+
   it("refuse un Excel contenant plusieurs lignes clients", () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([{ "Clé dossier": 1, "Nom / raison sociale": "Client 1" }, { "Clé dossier": 2, "Nom / raison sociale": "Client 2" }]), "Clients");

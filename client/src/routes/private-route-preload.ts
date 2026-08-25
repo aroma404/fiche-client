@@ -11,6 +11,7 @@ function cachedModule<T>(load: () => Promise<T>): CachedModule<T> {
 }
 
 export const loadAccountPage = cachedModule(() => import("@/pages/account-page").then(module => ({ default: module.AccountPage })));
+export const loadProgramSettingsPage = cachedModule(() => import("@/features/program-settings/program-settings-page").then(module => ({ default: module.ProgramSettingsPage })));
 export const loadNewClientPage = cachedModule(() => import("@/features/clients/new-client-page").then(module => ({ default: module.NewClientPage })));
 export const loadClientsPage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientsPage })));
 export const loadClientFichePage = cachedModule(() => import("@/features/clients/client-fiche-page").then(module => ({ default: module.ClientFichePage })));
@@ -24,15 +25,20 @@ export const loadDashboardPage = cachedModule(() => import("@/pages/dashboard-pa
 export const loadTransfersPage = cachedModule(() => import("@/pages/transfers-page").then(module => ({ default: module.TransfersPage })));
 export const loadCabinetFinancePage = cachedModule(() => import("@/pages/cabinet-finance-page").then(module => ({ default: module.CabinetFinancePage })));
 
+/** Centre d’enregistrement des imports différés et des chemins privés autorisés. */
+export const privateRouteManifest = [
+  { matches: (path: string) => path.startsWith("/dashboard"), loader: loadDashboardPage, warm: true },
+  { matches: (path: string) => path === "/clients/nouveau", loader: loadNewClientPage, warm: true },
+  { matches: (path: string) => path.startsWith("/clients/"), loader: loadClientFichePage, warm: false },
+  { matches: (path: string) => path.startsWith("/clients"), loader: loadClientsPage, warm: true },
+  { matches: (path: string) => path.startsWith("/transferts"), loader: loadTransfersPage, warm: true },
+  { matches: (path: string) => path.startsWith("/finances"), loader: loadCabinetFinancePage, warm: true },
+  { matches: (path: string) => path.startsWith("/reglages"), loader: loadProgramSettingsPage, warm: true },
+  { matches: (path: string) => path.startsWith("/compte"), loader: loadAccountPage, warm: true },
+] as const;
+
 export function getPrivateRouteLoader(path: string) {
-  if (path.startsWith("/dashboard")) return loadDashboardPage;
-  if (path === "/clients/nouveau") return loadNewClientPage;
-  if (path.startsWith("/clients/")) return loadClientFichePage;
-  if (path.startsWith("/clients")) return loadClientsPage;
-  if (path.startsWith("/transferts")) return loadTransfersPage;
-  if (path.startsWith("/finances")) return loadCabinetFinancePage;
-  if (path.startsWith("/compte")) return loadAccountPage;
-  return undefined;
+  return privateRouteManifest.find(entry => entry.matches(path))?.loader;
 }
 
 export function preloadPrivateRoute(path: string) {
@@ -42,11 +48,8 @@ export function preloadPrivateRoute(path: string) {
 export function prewarmCorePrivateRoutes() {
   void preloadPrivateRoute("/dashboard");
   const schedule = () => {
-    void preloadPrivateRoute("/clients");
-    void preloadPrivateRoute("/compte");
-    void preloadPrivateRoute("/clients/nouveau");
-    void preloadPrivateRoute("/transferts");
-    void preloadPrivateRoute("/finances");
+    const warmPaths = ["/dashboard", "/clients/nouveau", "/clients", "/transferts", "/finances", "/reglages", "/compte"];
+    warmPaths.forEach(path => void preloadPrivateRoute(path));
   };
   if (typeof window === "undefined") return;
   const requestIdleCallback = (window as Window & { requestIdleCallback?: (callback: () => void, options?: { timeout: number }) => number }).requestIdleCallback;

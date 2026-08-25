@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   getClientBundles: vi.fn(),
   getDb: vi.fn(),
   getOwnedClient: vi.fn(),
+  assertProgramClientStatus: vi.fn(),
 }));
 
 vi.mock("./account-context", () => ({ requireCurrentAccount: mocks.requireCurrentAccount }));
@@ -17,6 +18,7 @@ vi.mock("./db", () => ({
   getDb: mocks.getDb,
   getOwnedClient: mocks.getOwnedClient,
 }));
+vi.mock("./program-client-statuses", () => ({ assertProgramClientStatus: mocks.assertProgramClientStatus }));
 
 import { clientsRouter } from "./routers/clients";
 import { transfersRouter } from "./routers/transfers";
@@ -29,6 +31,7 @@ describe("isolation des comptes", () => {
     vi.clearAllMocks();
     mocks.requireCurrentAccount.mockResolvedValue({ id: 17, email: "cabinet@exemple.test" });
     mocks.getDb.mockResolvedValue(null);
+    mocks.assertProgramClientStatus.mockResolvedValue(undefined);
   });
 
   it("charge un dossier uniquement avec le compte de la session", async () => {
@@ -57,6 +60,13 @@ describe("isolation des comptes", () => {
     const caller = transfersRouter.createCaller(ctx);
 
     await expect(caller.exportData({ format: "xlsx", scope: "active" })).rejects.toThrow("Sélectionnez au moins un client.");
+  });
+
+  it("refuse une activité structurée incomplète ou absente de la nomenclature fournie", async () => {
+    const caller = clientsRouter.createCaller(ctx);
+
+    await expect(caller.create({ fullName: "Auto test", activityKind: "Auto-entrepreneur" })).rejects.toThrow("Choisissez Micro-importation ou Prestation de services.");
+    await expect(caller.create({ fullName: "RC test", activityKind: "Registre de commerce", rcActivityFamily: "000", rcActivityCode: "0000000000" })).rejects.toThrow("Choisissez une activité valide de la nomenclature fournie.");
   });
 
   it("ignore tout accountId fourni dans un import et rattache le nouveau dossier à la session", async () => {

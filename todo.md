@@ -53,3 +53,6 @@
 - [x] Améliorer les listes déroulantes et le bouton d’activation de l’export.
 - [x] Demander systématiquement la protection facultative par mot de passe avant chaque export, avec ZIP chiffré lorsque l’utilisateur la choisit.
 - [x] Ajouter une liste déroulante stylée pour le périmètre d’export et un bouton unique d’activation avec état contrôlé.
+- [x] Générer un fichier Excel indépendant pour chaque client exporté, y compris dans les ZIP protégés.
+- [x] Limiter l’import à un dossier client par fichier et expliquer cette règle dans l’interface.
+- [x] Télécharger un Excel seul pour un client, ou un ZIP regroupant un Excel par client pour une exportation multiple, avec ou sans mot de passe.

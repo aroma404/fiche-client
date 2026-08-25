@@ -14,6 +14,11 @@ describe("parseImport", () => {
     expect(result.clients[0].client).not.toHaveProperty("accountId");
   });
 
+  it("refuse un JSON contenant plusieurs dossiers", () => {
+    const payload = JSON.stringify({ schemaVersion: 1, clients: [{ client: { fullName: "Client 1" } }, { client: { fullName: "Client 2" } }] });
+    expect(() => parseImport("plusieurs.json", payload)).toThrow("un seul dossier client");
+  });
+
   it("recompose l’archive XLSX structurée avec ses intitulés français", () => {
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([{ "Clé dossier": 1, "Nom / raison sociale": "Dossier Excel", "Solde initial (DA)": 1200, accountId: 123 }]), "Clients");
@@ -27,5 +32,12 @@ describe("parseImport", () => {
 
     expect(result.clients[0]).toMatchObject({ client: { fullName: "Dossier Excel", initialBalance: 1200 }, documents: [{ label: "NIF", status: "Reçu", note: "Validé" }] });
     expect(result.clients[0].client).not.toHaveProperty("accountId");
+  });
+
+  it("refuse un Excel contenant plusieurs lignes clients", () => {
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([{ "Clé dossier": 1, "Nom / raison sociale": "Client 1" }, { "Clé dossier": 2, "Nom / raison sociale": "Client 2" }]), "Clients");
+    const file = XLSX.write(workbook, { type: "array", bookType: "xlsx" });
+    expect(() => parseImport("plusieurs.xlsx", file)).toThrow("un seul dossier client");
   });
 });

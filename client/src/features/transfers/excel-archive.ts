@@ -95,7 +95,7 @@ function coverSheet(clients: ClientDraft[], exportedAt: string, ficheNames: stri
   return ws;
 }
 
-export function createStyledExcelArchive(payload: ExportPayload) {
+function createStyledExcelArchive(payload: ExportPayload) {
   const clients = payload.clients.map(normalizeBundle);
   const workbook = XLSXStyle.utils.book_new();
   const detailNames = clients.map((_, index) => `Fiche ${index + 1}`);
@@ -111,7 +111,12 @@ export function createStyledExcelArchive(payload: ExportPayload) {
   const tables: [string, string, string, ArchiveRow[], string[], number[]][] = [["Clients", "DOSSIERS CLIENTS", "Identité, références et situation fiscale", clientRows, ["Clé dossier", "Nom / raison sociale", "Activité", "Forme juridique", "Type de client", "Statut", "Commune", "Contact", "NIF", "N° RC", "BP", "Article d’imposition", "NIN", "Régime", "Solde initial (DA)", "Observations"], [12, 30, 24, 20, 18, 14, 18, 20, 16, 14, 12, 20, 16, 16, 18, 36]], ["Documents", "DOCUMENTS", "Pièces et statut documentaire", docs, ["Clé dossier", "Document", "Catégorie", "Statut", "Observation"], [12, 28, 18, 16, 42]], ["Conformité", "CONFORMITÉ", "Obligations sociales et administratives", compliance, ["Clé dossier", "Obligation", "Statut", "Note"], [12, 32, 18, 42]], ["Dossiers", "DOSSIERS DE TRAVAIL", "Suivi CDI, CPI, CASNOS et autres", cases, ["Clé dossier", "Dossier", "Type", "Statut", "Note"], [12, 32, 16, 18, 42]], ["Paiements", "PAIEMENTS", "Versements enregistrés", payments, ["Clé dossier", "Date", "Objet", "Référence", "Montant (DA)"], [12, 14, 28, 22, 18]], ["Caisse", "CAISSE", "Entrées et sorties enregistrées", cash, ["Clé dossier", "Date", "Libellé", "Sens", "Montant (DA)"], [12, 14, 28, 16, 18]]];
   tables.forEach(([name, title, subtitle, rows, headers, widths]) => XLSXStyle.utils.book_append_sheet(workbook, tableSheet(title, subtitle, rows, headers, widths), name));
   (workbook as any).Workbook = { Views: [{ activeTab: 0 }] };
-  const fileName = `fiche-client-archive-complete-${new Date().toISOString().slice(0, 10)}.xlsx`;
+  const safeClientName = String(clients[0]?.client.fullName || "client").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "client";
+  const fileName = `fiche-client-${safeClientName}-${new Date().toISOString().slice(0, 10)}.xlsx`;
   const content = XLSXStyle.write(workbook, { bookType: "xlsx", type: "array" });
   return { fileName, blob: new Blob([content], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }) };
+}
+
+export function createIndividualExcelArchives(payload: ExportPayload) {
+  return payload.clients.map(client => createStyledExcelArchive({ schemaVersion: 1, exportedAt: payload.exportedAt, clients: [client] }));
 }

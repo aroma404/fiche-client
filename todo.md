@@ -47,3 +47,4 @@
 - [x] Retirer le texte long de confidentialité de la page du dossier client.
 - [x] Clarifier dans l’interface la session temporaire : cinq minutes au maximum et cookie supprimé à la fermeture du navigateur sans option de mémorisation.
 - [x] Ajouter une preuve de test pour les modes session temporaire et « Se souvenir de moi ».
+- [x] Ouvrir l’export Excel sur la fiche complète du client et transformer la vue d’ensemble en couverture administrative professionnelle.

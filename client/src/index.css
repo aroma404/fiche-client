@@ -107,3 +107,10 @@
 @media (min-width: 1024px) {
   .sidebar-shell { position: sticky !important; top: 0; align-self: flex-start; height: 100vh; max-height: 100vh; overflow: hidden; }
 }
+
+.settings-input { height: 2.75rem; width: 100%; border: 1px solid #d5dfdc; border-radius: 0.6rem; background: #fff; padding: 0 0.8rem; font-size: 0.875rem; font-weight: 400; color: #102a43; outline: none; }
+.settings-input:focus { border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.11); }
+.settings-primary, .settings-dark { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; border-radius: 0.6rem; padding: 0 1rem; font-size: 0.875rem; font-weight: 700; color: #fff; }
+.settings-primary { background: #0f766e; }
+.settings-dark { background: #102a43; }
+.settings-primary:disabled, .settings-dark:disabled { opacity: 0.6; }

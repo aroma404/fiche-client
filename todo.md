@@ -28,3 +28,14 @@
 - [x] Ajouter un tableau de bord détaillé comme page principale de l’espace connecté.
 - [x] Corriger l’espacement et la séparation des cartes dans Documents, Conformité, Dossiers, Paiements et Caisse.
 - [x] Fixer la barre latérale du bureau pendant le défilement, avec une liste clients défilable séparément.
+- [x] Créer un générateur PDF dédié, distinct de l’impression navigateur, pour chaque fiche client.
+- [x] Reconcevoir la fiche de suivi officielle sur une page A4 et supprimer toute référence à Manus.
+- [x] Générer un classeur Excel professionnel, mis en forme comme une archive administrative et non comme un export brut.
+- [x] Étendre le tableau de bord avec indicateurs métier et actions détaillées.
+- [x] Ajouter une recherche dans la liste latérale lorsque le portefeuille contient plus de cinq clients.
+- [x] Refaire le profil utilisateur : identité et e-mail masqué dans la barre, profil, changement d’e-mail, mot de passe, préférences et suppression sécurisée du compte.
+- [x] Séparer les fonctionnalités ajoutées en modules maintenables sans concentrer la logique dans une seule page.
+- [x] Remplacer la flèche textuelle du retour « Dossiers clients » par une icône SVG cohérente.
+- [x] Ajouter de vraies préférences de documents persistantes dans le compte, avec interface dédiée.
+- [x] Extraire les vues Impression et Import/Export vers des modules dédiés pour alléger les pages principales.
+- [x] Extraire les panneaux visuels d’Import/Export vers des composants dédiés afin que la page de route reste une coque légère.

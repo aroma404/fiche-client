@@ -1,8 +1,9 @@
 /** Tableau de bord du cabinet — vue d’ensemble strictement limitée au compte connecté. */
 
 import { PageTitle, WorkspaceLayout } from "@/components/workspace-layout";
+import { formatDA } from "@/lib/client-data";
 import { trpc } from "@/lib/trpc";
-import { ArrowRight, ClipboardCheck, Download, FileSpreadsheet, FolderKanban, Plus, ShieldCheck, UsersRound } from "lucide-react";
+import { ArrowRight, ClipboardCheck, Download, FileSpreadsheet, FolderKanban, Landmark, Plus, ShieldCheck, UsersRound } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "wouter";
 
@@ -17,6 +18,9 @@ export function DashboardPage() {
   const active = clients.filter(client => !client.archivedAt);
   const archived = clients.filter(client => client.archivedAt);
   const incomplete = active.filter(client => !client.activity || !client.commune || !client.contact);
+  const missingFiscalReference = active.filter(client => !client.nif || !client.regime);
+  const portfolioBalance = active.reduce((total, client) => total + Number(client.initialBalance || 0), 0);
+  const physicalPersons = active.filter(client => client.legalForm === "Personne physique").length;
   const recent = [...active].sort((a, b) => Number(new Date(b.updatedAt)) - Number(new Date(a.updatedAt))).slice(0, 5);
   const statusRows = Object.entries(active.reduce<Record<string, number>>((result, client) => {
     result[client.status || "Sans statut"] = (result[client.status || "Sans statut"] ?? 0) + 1;
@@ -31,6 +35,7 @@ export function DashboardPage() {
       <DashboardMetric label="Dossiers archivés" value={String(archived.length)} detail="Conservés hors du portefeuille actif" tone="paper" icon={<FolderKanban size={20} />} />
       <DashboardMetric label="Exports disponibles" value="JSON / XLSX" detail="Un client, une sélection ou tout le cabinet" tone="navy" icon={<Download size={20} />} />
     </section>
+    <section className="mt-6 grid gap-4 lg:grid-cols-3"><div className="rounded-2xl border border-[#d5dfdc] bg-white p-5"><div className="flex items-center gap-3 text-[#0f766e]"><Landmark size={20} /><p className="text-sm font-bold">Encours déclaré</p></div><p className="mt-5 font-serif text-3xl text-[#102a43]">{formatDA(portfolioBalance)}</p><p className="mt-2 text-xs leading-5 text-[#627785]">Somme des soldes initiaux sur vos dossiers actifs.</p></div><div className="rounded-2xl border border-[#d5dfdc] bg-white p-5"><p className="text-sm font-bold text-[#30505d]">Structure du portefeuille</p><p className="mt-5 font-serif text-3xl text-[#102a43]">{physicalPersons} <span className="text-base text-[#627785]">personne(s) physique(s)</span></p><p className="mt-2 text-xs leading-5 text-[#627785]">Sur {active.length} dossier(s) actuellement actifs.</p></div><div className="rounded-2xl border border-[#ead9a7] bg-[#fff9eb] p-5"><p className="text-sm font-bold text-[#795b1d]">Références à compléter</p><p className="mt-5 font-serif text-3xl text-[#102a43]">{missingFiscalReference.length}</p><p className="mt-2 text-xs leading-5 text-[#795b1d]">Dossier(s) sans NIF ou régime renseigné.</p></div></section>
     <section className="mt-6 grid gap-6 xl:grid-cols-[1.45fr_.85fr]">
       <div className="rounded-2xl border border-[#d5dfdc] bg-white p-6 shadow-[0_10px_28px_rgba(16,42,67,0.04)]">
         <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start"><div><p className="text-[11px] font-extrabold uppercase tracking-[0.14em] text-[#0f766e]">Suivi prioritaire</p><h2 className="mt-2 font-serif text-3xl text-[#102a43]">Derniers dossiers modifiés</h2><p className="mt-2 text-sm leading-6 text-[#627785]">Ouvrez rapidement les fiches sur lesquelles votre cabinet a travaillé récemment.</p></div><Link href="/clients" className="inline-flex items-center gap-2 text-sm font-bold text-[#0f766e] hover:text-[#0b625d]">Tous les dossiers <ArrowRight size={16} /></Link></div>

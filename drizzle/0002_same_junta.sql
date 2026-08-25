@@ -1,0 +1,2 @@
+ALTER TABLE `accounts` ADD `preferredExportFormat` enum('json','xlsx') DEFAULT 'xlsx' NOT NULL;--> statement-breakpoint
+ALTER TABLE `accounts` ADD `preferredDocumentMode` enum('pdf','print') DEFAULT 'pdf' NOT NULL;

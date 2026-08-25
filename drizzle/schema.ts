@@ -31,6 +31,8 @@ export const accounts = mysqlTable("accounts", {
   fullName: varchar("fullName", { length: 180 }).notNull(),
   email: varchar("email", { length: 320 }).notNull(),
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
+  preferredExportFormat: mysqlEnum("preferredExportFormat", ["json", "xlsx"]).default("xlsx").notNull(),
+  preferredDocumentMode: mysqlEnum("preferredDocumentMode", ["pdf", "print"]).default("pdf").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [uniqueIndex("accounts_email_unique").on(table.email)]);

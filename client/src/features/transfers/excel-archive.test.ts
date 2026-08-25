@@ -5,7 +5,7 @@ import { createIndividualExcelArchives } from "./excel-archive";
 
 describe("feuille Accueil Excel", () => {
   it("aligne les informations d’archive et place les raccourcis de navigation à droite", async () => {
-    const [archive] = createIndividualExcelArchives({
+    const [archive] = await createIndividualExcelArchives({
       schemaVersion: 1,
       exportedAt: "2026-08-25T12:31:27.000Z",
       clients: [{ client: { fullName: "Dossier de vérification" }, documents: [], compliance: [], cases: [], payments: [], cashEntries: [] }],
@@ -23,5 +23,13 @@ describe("feuille Accueil Excel", () => {
     expect(accueil.C6.v).toContain("25/08/2026");
     expect(accueil.G6.l?.Target).toBe("#'Fiche 1'!A1");
     expect(accueil["!ref"]).toBe("A1:J13");
+    const { BlobReader, TextWriter, ZipReader } = await import("@zip.js/zip.js");
+    const zip = new ZipReader(new BlobReader(archive.blob));
+    const sheet = (await zip.getEntries()).find(entry => entry.filename === "xl/worksheets/sheet1.xml");
+    const sheetXml = await (sheet as unknown as { getData: (writer: InstanceType<typeof TextWriter>) => Promise<string> } | undefined)?.getData(new TextWriter());
+    await zip.close();
+    expect(sheetXml).toContain('orientation="landscape"');
+    expect(sheetXml).toContain('fitToWidth="1"');
+    expect(sheetXml).toContain('fitToHeight="1"');
   });
 });

@@ -77,8 +77,8 @@ function coverSheet(clients: ClientDraft[], exportedAt: string, ficheNames: stri
     { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } }, { s: { r: 2, c: 0 }, e: { r: 2, c: 9 } },
     { s: { r: 4, c: 0 }, e: { r: 4, c: 4 } }, { s: { r: 4, c: 6 }, e: { r: 4, c: 9 } },
   ];
-  ws["!cols"] = [{ wch: 12 }, { wch: 13 }, { wch: 17 }, { wch: 17 }, { wch: 16 }, { wch: 3 }, { wch: 7 }, { wch: 17 }, { wch: 16 }, { wch: 17 }];
-  ws["!rows"] = [{ hpt: 34 }, { hpt: 25 }, { hpt: 35 }, { hpt: 10 }, { hpt: 25 }, { hpt: 29 }, { hpt: 29 }, { hpt: 36 }, { hpt: 36 }];
+  ws["!cols"] = [{ wch: 9 }, { wch: 9 }, { wch: 10 }, { wch: 6 }, { wch: 6 }, { wch: 1 }, { wch: 4 }, { wch: 11 }, { wch: 10 }, { wch: 10 }];
+  ws["!rows"] = [{ hpt: 34 }, { hpt: 25 }, { hpt: 46 }, { hpt: 10 }, { hpt: 25 }, { hpt: 35 }, { hpt: 35 }, { hpt: 50 }, { hpt: 50 }];
   ws["A1"].s = titleStyle;
   ws["A2"].s = { font: { bold: true, color: { rgb: teal }, sz: 14 }, fill: { fgColor: { rgb: pale } }, alignment: { vertical: "center" } };
   ws["A3"].s = subtitleStyle;
@@ -97,21 +97,41 @@ function coverSheet(clients: ClientDraft[], exportedAt: string, ficheNames: stri
     ws[labelCell] = { t: "s", v: String(label), s: labelStyle } as any;
     ws[valueCell] = { t: typeof value === "number" ? "n" : "s", v: value, s: evenStyle } as any;
     merges.push({ s: { r: row, c: 0 }, e: { r: row, c: 1 } }, { s: { r: row, c: 2 }, e: { r: row, c: 4 } });
-    ws["!rows"]![row] = { hpt: index > 1 ? 38 : 29 };
+    ws["!rows"]![row] = { hpt: index > 1 ? 50 : 35 };
   });
   cards.forEach((card, index) => {
     const row = index + 5;
     const key = XLSXStyle.utils.encode_cell({ r: row, c: 6 });
-    ws[key] = { t: "s", v: `${card.icon}  ${card.title}  —  ${card.subtitle}     → Ouvrir`, l: { Target: `#'${card.target}'!A1`, Tooltip: `Ouvrir ${card.target}` }, s: { ...navigationStyle, font: { bold: true, color: { rgb: "FFFFFF" }, sz: 10, underline: false }, fill: { fgColor: { rgb: card.tone } }, alignment: { horizontal: "left", vertical: "center", wrapText: true } } } as any;
+    ws[key] = { t: "s", v: `${card.icon}  ${card.title}    →`, l: { Target: `#'${card.target}'!A1`, Tooltip: `Ouvrir ${card.target}` }, s: { ...navigationStyle, font: { bold: true, color: { rgb: "FFFFFF" }, sz: 10, underline: false }, fill: { fgColor: { rgb: card.tone } }, alignment: { horizontal: "left", vertical: "center", wrapText: false } } } as any;
     merges.push({ s: { r: row, c: 6 }, e: { r: row, c: 9 } });
-    ws["!rows"]![row] = { hpt: 29 };
+    ws["!rows"]![row] = { hpt: 35 };
   });
   ws["!merges"] = merges;
   ws["!ref"] = `A1:J${Math.max(9, cards.length + 6)}`;
   return ws;
 }
 
-function createStyledExcelArchive(payload: ExportPayload) {
+async function applyAccueilPrintSettings(blob: Blob) {
+  const { BlobReader, BlobWriter, TextReader, TextWriter, ZipReader, ZipWriter } = await import("@zip.js/zip.js");
+  const reader = new ZipReader(new BlobReader(blob));
+  const entries = await reader.getEntries();
+  const writer = new ZipWriter(new BlobWriter("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+  for (const entry of entries) {
+    if (entry.directory) continue;
+    if (entry.filename === "xl/worksheets/sheet1.xml") {
+      const xml = await (entry as unknown as { getData: (writer: InstanceType<typeof TextWriter>) => Promise<string> }).getData(new TextWriter());
+      const withPrintSettings = xml.replace("</worksheet>", "<pageMargins left=\"0.25\" right=\"0.25\" top=\"0.35\" bottom=\"0.35\" header=\"0.15\" footer=\"0.15\"/><pageSetup orientation=\"landscape\" paperSize=\"9\" fitToWidth=\"1\" fitToHeight=\"1\"/></worksheet>");
+      await writer.add(entry.filename, new TextReader(withPrintSettings));
+    } else {
+      const file = entry as unknown as { getData: (writer: InstanceType<typeof BlobWriter>) => Promise<Blob> };
+      await writer.add(entry.filename, new BlobReader(await file.getData(new BlobWriter())));
+    }
+  }
+  await reader.close();
+  return writer.close();
+}
+
+async function createStyledExcelArchive(payload: ExportPayload) {
   const clients = payload.clients.map(normalizeBundle);
   const workbook = XLSXStyle.utils.book_new();
   const detailNames = clients.map((_, index) => `Fiche ${index + 1}`);
@@ -130,9 +150,10 @@ function createStyledExcelArchive(payload: ExportPayload) {
   const safeClientName = String(clients[0]?.client.fullName || "client").normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").toLowerCase() || "client";
   const fileName = `fiche-client-${safeClientName}-${new Date().toISOString().slice(0, 10)}.xlsx`;
   const content = XLSXStyle.write(workbook, { bookType: "xlsx", type: "array" });
-  return { fileName, blob: new Blob([content], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }) };
+  const rawBlob = new Blob([content], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+  return { fileName, blob: await applyAccueilPrintSettings(rawBlob) };
 }
 
-export function createIndividualExcelArchives(payload: ExportPayload) {
-  return payload.clients.map(client => createStyledExcelArchive({ schemaVersion: 1, exportedAt: payload.exportedAt, clients: [client] }));
+export async function createIndividualExcelArchives(payload: ExportPayload) {
+  return Promise.all(payload.clients.map(client => createStyledExcelArchive({ schemaVersion: 1, exportedAt: payload.exportedAt, clients: [client] })));
 }

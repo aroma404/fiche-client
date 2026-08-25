@@ -1,7 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { createIndividualExcelArchives } from "../client/src/features/transfers/excel-archive";
 
-const archive = createIndividualExcelArchives({
+const archive = await createIndividualExcelArchives({
   schemaVersion: 1,
   exportedAt: "2026-08-25T12:31:27.000Z",
   clients: [{

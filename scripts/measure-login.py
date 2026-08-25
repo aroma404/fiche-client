@@ -58,12 +58,26 @@ async def main() -> None:
         page = await browser.new_page()
         private_calls: list[str] = []
         record_private_calls = False
+        login_started_at: float | None = None
+        session_started_at: float | None = None
+        login_response_ms: int | None = None
+        session_response_ms: int | None = None
 
         def record_request(request) -> None:
             if record_private_calls and "/api/trpc/" in request.url:
                 private_calls.append(request.url.split("?")[0])
 
         page.on("request", record_request)
+
+        def record_response(response) -> None:
+            nonlocal login_response_ms, session_response_ms
+            url = response.url
+            if "account.login" in url and login_started_at is not None and login_response_ms is None:
+                login_response_ms = round((time.perf_counter() - login_started_at) * 1000)
+            if "account.me" in url and session_started_at is not None and session_response_ms is None:
+                session_response_ms = round((time.perf_counter() - session_started_at) * 1000)
+
+        page.on("response", record_response)
         try:
             await page.goto(f"{BASE_URL}/creer-un-compte", wait_until="networkidle")
             await page.get_by_label("Nom complet").fill("Mesure technique")
@@ -87,6 +101,7 @@ async def main() -> None:
             await page.get_by_label("Mot de passe").fill(PASSWORD)
             record_private_calls = True
             started_at = time.perf_counter()
+            login_started_at = started_at
             await asyncio.gather(
                 page.wait_for_url("**/dashboard"),
                 page.get_by_role("button", name="Se connecter").click(),
@@ -104,6 +119,9 @@ async def main() -> None:
                 dashboard_measure_ms = await page.evaluate(
                     "() => Math.round(performance.getEntriesByName('fiche:first-dashboard-after-auth').at(-1)?.duration ?? -1)"
                 )
+            session_started_at = time.perf_counter()
+            await page.reload(wait_until="networkidle")
+            await page.get_by_role("heading", name="Tableau de bord").wait_for(timeout=5000)
             await page.wait_for_timeout(1300)
             await start_fallback_observer(page)
             clients_started_at = time.perf_counter()
@@ -129,6 +147,8 @@ async def main() -> None:
             print(json.dumps({
                 "firstDashboardMs": first_dashboard_ms,
                 "dashboardMeasureMs": dashboard_measure_ms,
+                "loginResponseMs": login_response_ms,
+                "sessionResponseMs": session_response_ms,
                 "clientsNavigationMs": clients_navigation_ms,
                 "transfersNavigationMs": transfers_navigation_ms,
                 "clientsFallbackSeen": clients_fallback_seen,

@@ -27,3 +27,4 @@
 - [x] Rendre les exports JSON et XLSX structurés, lisibles et prêts à être archivés ou réimportés.
 - [x] Ajouter un tableau de bord détaillé comme page principale de l’espace connecté.
 - [x] Corriger l’espacement et la séparation des cartes dans Documents, Conformité, Dossiers, Paiements et Caisse.
+- [x] Fixer la barre latérale du bureau pendant le défilement, avec une liste clients défilable séparément.

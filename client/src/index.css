@@ -103,3 +103,7 @@
   .client-register tbody tr:nth-child(even) td { background: #fbfdfc; }
   .client-register tbody input, .client-register tbody select { min-height: 2.5rem; }
 }
+
+@media (min-width: 1024px) {
+  .sidebar-shell { position: sticky !important; top: 0; align-self: flex-start; height: 100vh; max-height: 100vh; overflow: hidden; }
+}

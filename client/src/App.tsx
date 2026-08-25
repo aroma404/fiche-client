@@ -8,6 +8,7 @@ import { trpc } from "./lib/trpc";
 import { WorkspaceLayout } from "./components/workspace-layout";
 import { PrivateWorkspaceSkeleton } from "./components/private-workspace-skeleton";
 import { LoginPage, LandingPage, RegisterPage } from "./pages/auth-pages";
+import { UsageConventionPage } from "./pages/usage-convention-page";
 import { type CachedModule, loadAccountPage, loadCabinetFinancePage, loadClientCompliancePage, loadClientDocumentsPage, loadClientFichePage, loadClientPaymentsPage, loadClientPrintPage, loadClientsPage, loadDashboardPage, loadNewClientPage, loadTransfersPage } from "./routes/private-route-preload";
 
 function preloadedRoute<Props extends object>(loader: CachedModule<{ default: ComponentType<Props> }>) {
@@ -44,6 +45,7 @@ function Router() {
     <Route path="/" component={LandingPage} />
     <Route path="/connexion" component={LoginPage} />
     <Route path="/creer-un-compte" component={RegisterPage} />
+    <Route path="/convention-utilisation" component={UsageConventionPage} />
     <Route path="/dashboard" component={DashboardPage} />
     <Route path="/clients/nouveau" component={NewClientPage} />
     <Route path="/clients" component={ClientsPage} />

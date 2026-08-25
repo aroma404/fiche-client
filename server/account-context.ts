@@ -11,8 +11,7 @@ export async function getCurrentAccount(req: Request) {
   const token = parse(req.headers.cookie ?? "")[ACCOUNT_SESSION_COOKIE];
   if (!token) return null;
   try {
-    const { accountId, sessionId } = await verifyAccountSession(token);
-    const db = await getDb();
+    const [{ accountId, sessionId }, db] = await Promise.all([verifyAccountSession(token), getDb()]);
     if (!db) return null;
     const rows = await db.select({ account: accounts, session: accountSessions })
       .from(accountSessions)

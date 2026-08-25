@@ -56,3 +56,12 @@
 - [x] Générer un fichier Excel indépendant pour chaque client exporté, y compris dans les ZIP protégés.
 - [x] Limiter l’import à un dossier client par fichier et expliquer cette règle dans l’interface.
 - [x] Télécharger un Excel seul pour un client, ou un ZIP regroupant un Excel par client pour une exportation multiple, avec ou sans mot de passe.
+- [ ] Mesurer et réduire le délai du premier parcours de connexion sans affaiblir la vérification du mot de passe ni l’isolation de session.
+- [ ] Instrumenter le premier parcours de connexion et consigner les durées login, session et première vue dashboard avant/après optimisation.
+- [x] Vérifier que le premier écran authentifié ne relance pas inutilement account.me ni clients.list.
+- [ ] Enregistrer une mesure vérifiable du temps login, validation de session et premier rendu Dashboard après optimisation.
+- [ ] Réaligner le bloc d’informations de la feuille Accueil Excel, harmoniser ses dimensions et placer les raccourcis de navigation à droite.
+- [ ] Garder la feuille Accueil sur une page paysage lors de l’aperçu ou de l’impression afin que la navigation droite ne soit pas envoyée sur une page horizontale distincte.
+- [x] Précharger les routes privées depuis les liens de navigation afin d’ouvrir aussi les pages jamais visitées sans écran d’attente perceptible.
+- [x] Précharger les destinations privées essentielles pendant la connexion et basculer directement sur le tableau de bord dès l’authentification validée.
+- [x] Vérifier dans un navigateur qu’une page privée jamais visitée ne montre pas le fallback « Ouverture de votre espace… » après préchargement.

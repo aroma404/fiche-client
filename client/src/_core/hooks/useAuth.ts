@@ -10,7 +10,7 @@ export function useAuth(options?: UseAuthOptions) {
   const { redirectOnUnauthenticated = false, redirectPath = "/connexion" } = options ?? {};
   const [, setLocation] = useLocation();
   const utils = trpc.useUtils();
-  const meQuery = trpc.account.me.useQuery(undefined, { retry: false, refetchOnWindowFocus: false });
+  const meQuery = trpc.account.me.useQuery(undefined, { retry: false, refetchOnWindowFocus: false, staleTime: 60_000 });
   const logoutMutation = trpc.account.logout.useMutation({ onSuccess: () => utils.account.me.setData(undefined, null) });
 
   const logout = useCallback(async () => {

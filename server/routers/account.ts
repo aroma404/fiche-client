@@ -25,18 +25,27 @@ function writeSessionCookie(ctx: { req: Parameters<typeof getSessionCookieOption
   ctx.res.cookie(ACCOUNT_SESSION_COOKIE, token, rememberMe ? { ...options, maxAge: sessionMaxAge(true) } : options);
 }
 
+function recordAuthTiming(ctx: { res: { setHeader?: (name: string, value: string) => void } }, label: string, startedAt: number) {
+  ctx.res.setHeader?.("Server-Timing", `${label};dur=${Math.round(performance.now() - startedAt)}`);
+}
+
 async function createSession(ctx: { req: Parameters<typeof getSessionCookieOptions>[0]; res: { cookie: Function } }, accountId: number, rememberMe: boolean) {
   const db = await getDb();
   if (!db) throw new Error("La base de données est indisponible.");
   const id = nanoid(40);
   const expiresAt = new Date(Date.now() + sessionMaxAge(rememberMe));
-  await db.insert(accountSessions).values({ id, accountId, expiresAt, rememberMe });
-  writeSessionCookie(ctx, await signAccountSession(accountId, id, rememberMe), rememberMe);
+  const [, token] = await Promise.all([
+    db.insert(accountSessions).values({ id, accountId, expiresAt, rememberMe }),
+    signAccountSession(accountId, id, rememberMe),
+  ]);
+  writeSessionCookie(ctx, token, rememberMe);
 }
 
 export const accountRouter = router({
   me: publicProcedure.query(async ({ ctx }) => {
+    const startedAt = performance.now();
     const account = await getCurrentAccount(ctx.req);
+    recordAuthTiming(ctx, "account_session", startedAt);
     return account ? publicAccount(account) : null;
   }),
 
@@ -59,9 +68,11 @@ export const accountRouter = router({
   }),
 
   login: publicProcedure.input(z.object({ email: z.string().trim().email(), password: z.string().min(1), rememberMe: z.boolean().default(false) })).mutation(async ({ ctx, input }) => {
+    const startedAt = performance.now();
     const account = await getAccountByEmail(input.email.toLowerCase());
     if (!account || !(await verifyPassword(input.password, account.passwordHash))) throw new Error("E-mail ou mot de passe incorrect.");
     await createSession(ctx, account.id, input.rememberMe);
+    recordAuthTiming(ctx, "account_login", startedAt);
     return publicAccount(account);
   }),
 

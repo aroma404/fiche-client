@@ -72,26 +72,42 @@ function coverSheet(clients: ClientDraft[], exportedAt: string, ficheNames: stri
     ...clients.map((client, index) => ({ icon: "▣", title: `FICHE ${index + 1}`, subtitle: client.client.fullName || "Client", target: ficheNames[index], tone: teal })),
     ...archiveCards.map(([icon, title, subtitle, target, tone]) => ({ icon, title, subtitle, target, tone })),
   ];
-  const ws = XLSXStyle.utils.aoa_to_sheet([["FICHE CLIENT IMPÔT — ARCHIVE COMPLÈTE"], [`${firstClient}`], ["Tableau de navigation : choisissez une icône pour ouvrir une fiche ou une table du dossier."], [], ["Date de préparation", new Date(exportedAt).toLocaleString("fr-FR")], ["Dossiers inclus", clients.length], ["Organisation", "Chaque fiche et chaque registre restent dans leur feuille dédiée."], ["Usage", "Vérifiez les données avant impression, transmission ou réimport."], [], ["NAVIGATION RAPIDE"]]);
-  const merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [{ s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }, { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } }, { s: { r: 9, c: 0 }, e: { r: 9, c: 6 } }];
-  ws["!cols"] = [{ wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 4 }, { wch: 18 }, { wch: 14 }, { wch: 16 }];
-  ws["!rows"] = [{ hpt: 34 }, { hpt: 25 }, { hpt: 35 }, {}, {}, {}, {}, {}, {}, { hpt: 24 }];
+  const ws = XLSXStyle.utils.aoa_to_sheet([["FICHE CLIENT IMPÔT — ARCHIVE COMPLÈTE"], [`${firstClient}`], ["Tableau de navigation : choisissez un raccourci pour ouvrir une fiche ou une table du dossier."], []]);
+  const merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [
+    { s: { r: 0, c: 0 }, e: { r: 0, c: 9 } }, { s: { r: 1, c: 0 }, e: { r: 1, c: 9 } }, { s: { r: 2, c: 0 }, e: { r: 2, c: 9 } },
+    { s: { r: 4, c: 0 }, e: { r: 4, c: 4 } }, { s: { r: 4, c: 6 }, e: { r: 4, c: 9 } },
+  ];
+  ws["!cols"] = [{ wch: 12 }, { wch: 13 }, { wch: 17 }, { wch: 17 }, { wch: 16 }, { wch: 3 }, { wch: 7 }, { wch: 17 }, { wch: 16 }, { wch: 17 }];
+  ws["!rows"] = [{ hpt: 34 }, { hpt: 25 }, { hpt: 35 }, { hpt: 10 }, { hpt: 25 }, { hpt: 29 }, { hpt: 29 }, { hpt: 36 }, { hpt: 36 }];
   ws["A1"].s = titleStyle;
   ws["A2"].s = { font: { bold: true, color: { rgb: teal }, sz: 14 }, fill: { fgColor: { rgb: pale } }, alignment: { vertical: "center" } };
   ws["A3"].s = subtitleStyle;
-  ["A5", "A6", "A7", "A8"].forEach(cell => { if (ws[cell]) ws[cell].s = labelStyle; });
-  ["B5", "B6", "B7", "B8"].forEach(cell => { if (ws[cell]) ws[cell].s = evenStyle; });
-  ws["A10"].s = sectionStyle;
+  ws["A5"] = { t: "s", v: "INFORMATIONS D’ARCHIVE", s: sectionStyle } as any;
+  ws["G5"] = { t: "s", v: "NAVIGATION RAPIDE", s: sectionStyle } as any;
+  const informationRows = [
+    ["Date de préparation", new Date(exportedAt).toLocaleString("fr-FR")],
+    ["Dossiers inclus", clients.length],
+    ["Organisation", "Chaque fiche et chaque registre restent dans leur feuille dédiée."],
+    ["Usage", "Vérifiez les données avant impression, transmission ou réimport."],
+  ];
+  informationRows.forEach(([label, value], index) => {
+    const row = index + 5;
+    const labelCell = XLSXStyle.utils.encode_cell({ r: row, c: 0 });
+    const valueCell = XLSXStyle.utils.encode_cell({ r: row, c: 2 });
+    ws[labelCell] = { t: "s", v: String(label), s: labelStyle } as any;
+    ws[valueCell] = { t: typeof value === "number" ? "n" : "s", v: value, s: evenStyle } as any;
+    merges.push({ s: { r: row, c: 0 }, e: { r: row, c: 1 } }, { s: { r: row, c: 2 }, e: { r: row, c: 4 } });
+    ws["!rows"]![row] = { hpt: index > 1 ? 38 : 29 };
+  });
   cards.forEach((card, index) => {
-    const row = 11 + Math.floor(index / 2) * 4;
-    const col = index % 2 === 0 ? 0 : 4;
-    const key = XLSXStyle.utils.encode_cell({ r: row - 1, c: col });
-    ws[key] = { t: "s", v: `${card.icon}\n${card.title}\n${card.subtitle}\n→ Ouvrir`, l: { Target: `#'${card.target}'!A1`, Tooltip: `Ouvrir ${card.target}` }, s: { ...navigationStyle, font: { bold: true, color: { rgb: "FFFFFF" }, sz: 12, underline: false }, fill: { fgColor: { rgb: card.tone } }, alignment: { horizontal: "center", vertical: "center", wrapText: true } } } as any;
-    merges.push({ s: { r: row - 1, c: col }, e: { r: row + 1, c: col + 2 } });
-    ws["!rows"]![row - 1] = { hpt: 25 }; ws["!rows"]![row] = { hpt: 25 }; ws["!rows"]![row + 1] = { hpt: 25 };
+    const row = index + 5;
+    const key = XLSXStyle.utils.encode_cell({ r: row, c: 6 });
+    ws[key] = { t: "s", v: `${card.icon}  ${card.title}  —  ${card.subtitle}     → Ouvrir`, l: { Target: `#'${card.target}'!A1`, Tooltip: `Ouvrir ${card.target}` }, s: { ...navigationStyle, font: { bold: true, color: { rgb: "FFFFFF" }, sz: 10, underline: false }, fill: { fgColor: { rgb: card.tone } }, alignment: { horizontal: "left", vertical: "center", wrapText: true } } } as any;
+    merges.push({ s: { r: row, c: 6 }, e: { r: row, c: 9 } });
+    ws["!rows"]![row] = { hpt: 29 };
   });
   ws["!merges"] = merges;
-  ws["!ref"] = `A1:G${11 + Math.ceil(cards.length / 2) * 4}`;
+  ws["!ref"] = `A1:J${Math.max(9, cards.length + 6)}`;
   return ws;
 }
 

@@ -1,18 +1,37 @@
 /** Atelier fiscal moderne — routes publiques, authentification et espaces privés par client. */
 import { Route, Switch } from "wouter";
+import { type ComponentType, type ReactNode, useEffect, useState } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useAuth } from "./_core/hooks/useAuth";
 import { trpc } from "./lib/trpc";
 import { WorkspaceLayout } from "./components/workspace-layout";
 import { LoginPage, LandingPage, RegisterPage } from "./pages/auth-pages";
-import { AccountPage } from "./pages/account-page";
-import { NewClientPage } from "./features/clients/new-client-page";
-import { ClientCasesPage, ClientCashPage, ClientCompliancePage, ClientDocumentsPage, ClientFichePage, ClientPaymentsPage, ClientPrintPage, ClientsPage } from "./pages/clients-pages";
-import { DashboardPage } from "./pages/dashboard-page";
-import { TransfersPage } from "./pages/transfers-page";
+import { type CachedModule, loadAccountPage, loadClientCasesPage, loadClientCashPage, loadClientCompliancePage, loadClientDocumentsPage, loadClientFichePage, loadClientPaymentsPage, loadClientPrintPage, loadClientsPage, loadDashboardPage, loadNewClientPage, loadTransfersPage } from "./routes/private-route-preload";
 
-function ClientRoute({ clientId, children }: { clientId: number; children: React.ReactNode }) {
+function preloadedRoute<Props extends object>(loader: CachedModule<{ default: ComponentType<Props> }>) {
+  return function PreloadedRoute(props: Props) {
+    const [Component, setComponent] = useState<ComponentType<Props> | undefined>(() => loader.get()?.default);
+    useEffect(() => { if (!Component) void loader().then(module => setComponent(() => module.default)); }, [Component]);
+    if (!Component) return <div className="min-h-screen bg-[#f6f5f0] p-8 text-sm text-[#627785]" aria-busy="true">Préparation de votre espace…</div>;
+    return <Component {...props} />;
+  };
+}
+
+const AccountPage = preloadedRoute(loadAccountPage);
+const NewClientPage = preloadedRoute(loadNewClientPage);
+const ClientsPage = preloadedRoute(loadClientsPage);
+const ClientFichePage = preloadedRoute(loadClientFichePage);
+const ClientDocumentsPage = preloadedRoute(loadClientDocumentsPage);
+const ClientCompliancePage = preloadedRoute(loadClientCompliancePage);
+const ClientCasesPage = preloadedRoute(loadClientCasesPage);
+const ClientPaymentsPage = preloadedRoute(loadClientPaymentsPage);
+const ClientCashPage = preloadedRoute(loadClientCashPage);
+const ClientPrintPage = preloadedRoute(loadClientPrintPage);
+const DashboardPage = preloadedRoute(loadDashboardPage);
+const TransfersPage = preloadedRoute(loadTransfersPage);
+
+function ClientRoute({ clientId, children }: { clientId: number; children: ReactNode }) {
   const { loading, user } = useAuth({ redirectOnUnauthenticated: true });
   const query = trpc.clients.get.useQuery({ clientId }, { enabled: Boolean(user) && Number.isInteger(clientId) && clientId > 0 });
   if (loading || query.isLoading) return <WorkspaceLayout><p className="text-sm text-[#627785]">Chargement du dossier sécurisé…</p></WorkspaceLayout>;

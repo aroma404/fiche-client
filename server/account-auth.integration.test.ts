@@ -15,10 +15,12 @@ const password = "MotDePasseTemporaire!2026";
 function context(cookie = "") {
   const cookies: { name: string; value: string; options?: Record<string, unknown> }[] = [];
   const cleared: string[] = [];
+  const headers: Record<string, string> = {};
   return {
-    ctx: { req: { protocol: "https", headers: { cookie } }, res: { cookie: (name: string, value: string, options: Record<string, unknown>) => cookies.push({ name, value, options }), clearCookie: (name: string) => cleared.push(name) } } as any,
+    ctx: { req: { protocol: "https", headers: { cookie } }, res: { cookie: (name: string, value: string, options: Record<string, unknown>) => cookies.push({ name, value, options }), clearCookie: (name: string) => cleared.push(name), setHeader: (name: string, value: string) => { headers[name] = value; } } } as any,
     cookies,
     cleared,
+    headers,
   };
 }
 
@@ -37,10 +39,18 @@ suite("parcours d’authentification persistant", () => {
     expect(first.cookies[0].options?.maxAge).toBeUndefined();
 
     const firstCookie = `fiche_client_session=${first.cookies[0].value}`;
-    await expect(accountRouter.createCaller(context(firstCookie).ctx).me()).resolves.toMatchObject({ id: created.id, email });
+    const firstSession = context(firstCookie);
+    const sessionStartedAt = performance.now();
+    await expect(accountRouter.createCaller(firstSession.ctx).me()).resolves.toMatchObject({ id: created.id, email });
+    const sessionElapsedMs = Math.round(performance.now() - sessionStartedAt);
+    expect(firstSession.headers["Server-Timing"]).toMatch(/^account_session;dur=\d+$/);
 
     const second = context();
+    const loginStartedAt = performance.now();
     await expect(accountRouter.createCaller(second.ctx).login({ email, password, rememberMe: true })).resolves.toMatchObject({ id: created.id });
+    const loginElapsedMs = Math.round(performance.now() - loginStartedAt);
+    expect(second.headers["Server-Timing"]).toMatch(/^account_login;dur=\d+$/);
+    console.info(`[Performance auth] login=${loginElapsedMs}ms · session=${sessionElapsedMs}ms`);
     expect(Number(second.cookies[0].options?.maxAge)).toBeGreaterThan(60 * 60 * 24 * 1_000);
     const dbBeforeLogout = await getDb();
     if (dbBeforeLogout) expect(await dbBeforeLogout.select().from(accountSessions).where(eq(accountSessions.accountId, created.id))).toEqual(expect.arrayContaining([expect.objectContaining({ rememberMe: false }), expect.objectContaining({ rememberMe: true })]));

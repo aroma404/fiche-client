@@ -125,11 +125,24 @@ async def main() -> None:
             else:
                 await page.get_by_role("heading", name="Tableau de bord").wait_for(timeout=5000)
             first_dashboard_ms = round((time.perf_counter() - started_at) * 1000)
+            await page.goto(f"{BASE_URL}/clients/nouveau", wait_until="networkidle")
+            await page.get_by_label("Nom complet / raison sociale").fill("Client de vérification technique")
+            await asyncio.gather(
+                page.wait_for_url("**/clients/*/fiche"),
+                page.get_by_role("button", name="Créer et ouvrir la fiche").click(),
+            )
+            client_id = page.url.rsplit("/", 1)[0].rsplit("/", 1)[-1]
+            await page.goto(f"{BASE_URL}/clients/{client_id}/paiements", wait_until="networkidle")
+            payment_tabs = await page.locator(f'nav:has(a[href="/clients/{client_id}/fiche"]) a').evaluate_all("links => links.map(link => ({ label: link.textContent.trim(), href: link.getAttribute('href'), active: link.className.includes('border-[#0f766e]') }))")
+            expected_tabs = ["Fiche", "Documents", "Conformité", "Paiements", "Impression"]
+            if [tab["label"] for tab in payment_tabs] != expected_tabs or not payment_tabs[3]["active"]:
+                raise RuntimeError(f"Navigation client Paiements invalide: {payment_tabs}")
             dashboard_measure_ms = -1
             if os.environ.get("MEASURE_DASHBOARD_MARK") == "1":
                 dashboard_measure_ms = await page.evaluate(
                     "() => Math.round(performance.getEntriesByName('fiche:first-dashboard-after-auth').at(-1)?.duration ?? -1)"
                 )
+            await page.goto(f"{BASE_URL}/dashboard", wait_until="networkidle")
             session_started_at = time.perf_counter()
             dashboard_surface = await reload_with_boot_shell(page, "Tableau de bord")
             dashboard_reload_url = page.url
@@ -180,6 +193,7 @@ async def main() -> None:
                 "dashboardMeasureMs": dashboard_measure_ms,
                 "loginResponseMs": login_response_ms,
                 "sessionResponseMs": session_response_ms,
+                "clientPaymentTabs": payment_tabs,
                 "clientsNavigationMs": clients_navigation_ms,
                 "financesNavigationMs": finances_navigation_ms,
                 "transfersNavigationMs": transfers_navigation_ms,

@@ -75,3 +75,4 @@
 - [x] Afficher la Convention d’utilisation sous l’option « Se souvenir de moi » dans le formulaire de connexion, avec accès à son contenu.
 - [x] Aligner visuellement Paiements du client sur les cartes et le registre de Finances du cabinet, sans lui donner accès aux opérations d’autres clients.
 - [x] Remplacer l’encart repliable de convention par une option de type case à cocher sous Se souvenir de moi et un lien interne vers la page de convention.
+- [x] Rétablir la barre de navigation Fiche / Documents / Conformité / Paiements / Impression dans Paiements et observations, avec Paiements actif.

@@ -32,13 +32,21 @@ const trpcClient = trpc.createClient({
   ],
 });
 
-createRoot(document.getElementById("root")!).render(
+const bootShell = document.getElementById("app-boot-shell");
+const rootElement = document.getElementById("root")!;
+createRoot(rootElement).render(
   <trpc.Provider client={trpcClient} queryClient={queryClient}>
     <QueryClientProvider client={queryClient}>
       <App />
     </QueryClientProvider>
   </trpc.Provider>
 );
+const bootObserver = new MutationObserver(() => {
+  if (!rootElement.children.length) return;
+  window.requestAnimationFrame(() => bootShell?.remove());
+  bootObserver.disconnect();
+});
+bootObserver.observe(rootElement, { childList: true });
 
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {

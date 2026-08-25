@@ -2,6 +2,7 @@
 
 import { BrandSymbol } from "@/components/local-visuals";
 import { FastPrivateLink } from "@/components/fast-private-link";
+import { PrivateWorkspaceSkeleton } from "@/components/private-workspace-skeleton";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { trpc } from "@/lib/trpc";
 import { Download, LayoutDashboard, Plus, Search, Users } from "lucide-react";
@@ -36,7 +37,7 @@ export function WorkspaceLayout({ children }: { children: ReactNode }) {
   const visibleClients = useMemo(() => clients.filter(client => `${client.fullName} ${client.commune} ${client.status}`.toLocaleLowerCase("fr").includes(search.trim().toLocaleLowerCase("fr"))), [clients, search]);
   useEffect(() => { if (user) prewarmCorePrivateRoutes(); }, [user?.id]);
 
-  if (loading || !user) return <div className="min-h-screen bg-[#f6f5f0] p-8 text-sm text-[#627785]">Préparation de votre espace de travail…</div>;
+  if (loading || !user) return <PrivateWorkspaceSkeleton />;
 
   return <WorkspaceClientsContext.Provider value={{ clients: allClients, isLoading: clientsQuery.isLoading }}><div className="min-h-screen bg-[#f6f5f0] lg:flex">
     <aside className="sidebar-shell hidden h-screen w-[292px] shrink-0 flex-col border-r border-[#cfdad7] bg-[#edf1ee] px-5 py-6 lg:flex">

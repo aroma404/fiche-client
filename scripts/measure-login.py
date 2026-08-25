@@ -49,6 +49,14 @@ async def start_fallback_observer(page: Page) -> None:
     )
 
 
+async def reload_with_boot_shell(page: Page, heading: str) -> dict:
+    await page.reload(wait_until="commit")
+    boot_shell_seen = await page.locator("#app-boot-shell").is_visible(timeout=1000)
+    await page.wait_for_load_state("networkidle")
+    await page.get_by_role("heading", name=heading).wait_for(timeout=5000)
+    return {"bootShellSeen": boot_shell_seen, "finalHeading": heading}
+
+
 async def main() -> None:
     account_created = False
     async with async_playwright() as playwright:
@@ -57,6 +65,7 @@ async def main() -> None:
         )
         page = await browser.new_page()
         private_calls: list[str] = []
+        reload_errors: list[str] = []
         record_private_calls = False
         login_started_at: float | None = None
         session_started_at: float | None = None
@@ -68,6 +77,8 @@ async def main() -> None:
                 private_calls.append(request.url.split("?")[0])
 
         page.on("request", record_request)
+        page.on("console", lambda message: reload_errors.append(message.text) if message.type == "error" else None)
+        page.on("pageerror", lambda error: reload_errors.append(str(error)))
 
         def record_response(response) -> None:
             nonlocal login_response_ms, session_response_ms
@@ -120,8 +131,8 @@ async def main() -> None:
                     "() => Math.round(performance.getEntriesByName('fiche:first-dashboard-after-auth').at(-1)?.duration ?? -1)"
                 )
             session_started_at = time.perf_counter()
-            await page.reload(wait_until="networkidle")
-            await page.get_by_role("heading", name="Tableau de bord").wait_for(timeout=5000)
+            dashboard_surface = await reload_with_boot_shell(page, "Tableau de bord")
+            dashboard_reload_url = page.url
             await page.wait_for_timeout(1300)
             await start_fallback_observer(page)
             clients_started_at = time.perf_counter()
@@ -132,6 +143,8 @@ async def main() -> None:
             await page.get_by_role("heading", name="Dossiers clients").wait_for(timeout=5000)
             clients_navigation_ms = round((time.perf_counter() - clients_started_at) * 1000)
             clients_fallback_seen = await page.evaluate("() => Boolean(window.__ficheFallbackSeen)")
+            clients_surface = await reload_with_boot_shell(page, "Dossiers clients")
+            clients_reload_url = page.url
             await page.locator('aside nav a[href="/transferts"]').hover()
             await page.wait_for_timeout(300)
             await start_fallback_observer(page)
@@ -143,6 +156,13 @@ async def main() -> None:
             await page.get_by_role("heading", name="Importer et exporter").wait_for(timeout=5000)
             transfers_navigation_ms = round((time.perf_counter() - transfers_started_at) * 1000)
             transfers_fallback_seen = await page.evaluate("() => Boolean(window.__ficheFallbackSeen)")
+            transfers_surface = await reload_with_boot_shell(page, "Importer et exporter")
+            transfers_reload_url = page.url
+            await delete_technical_account(page)
+            account_created = False
+            await page.goto(f"{BASE_URL}/connexion", wait_until="networkidle")
+            public_surface = await reload_with_boot_shell(page, "Bienvenue")
+            public_reload_url = page.url
             distinct_calls = sorted(set(private_calls))
             print(json.dumps({
                 "firstDashboardMs": first_dashboard_ms,
@@ -153,6 +173,10 @@ async def main() -> None:
                 "transfersNavigationMs": transfers_navigation_ms,
                 "clientsFallbackSeen": clients_fallback_seen,
                 "transfersFallbackSeen": transfers_fallback_seen,
+                "reloadUrls": [dashboard_reload_url, clients_reload_url, transfers_reload_url],
+                "publicReloadUrl": public_reload_url,
+                "visualSurface": {"dashboard": dashboard_surface, "clients": clients_surface, "transfers": transfers_surface, "public": public_surface},
+                "reloadErrors": reload_errors,
                 "privateCalls": distinct_calls,
                 "privateCallCount": len(distinct_calls),
             }))

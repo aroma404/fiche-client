@@ -66,3 +66,6 @@
 - [x] Précharger les destinations privées essentielles pendant la connexion et basculer directement sur le tableau de bord dès l’authentification validée.
 - [x] Vérifier dans un navigateur qu’une page privée jamais visitée ne montre pas le fallback « Ouverture de votre espace… » après préchargement.
 - [x] Comparer de manière reproductible le login, la validation de session et le premier Dashboard entre le checkpoint de référence et la version optimisée.
+- [x] Reproduire et corriger les erreurs de rechargement des pages publiques et privées, y compris la restauration de session et des routes différées.
+- [x] Supprimer les micro-attentes perceptibles au rechargement et au passage entre pages privées par une restauration visuelle continue et des données préparées.
+- [x] Vérifier par navigateur le rechargement de pages publiques et privées, la restauration de session et l’absence de période visuellement vide.

@@ -1,11 +1,12 @@
 /** Atelier fiscal moderne — routes publiques, authentification et espaces privés par client. */
-import { Route, Switch } from "wouter";
+import { Route, Switch, useLocation } from "wouter";
 import { type ComponentType, type ReactNode, useEffect, useState } from "react";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useAuth } from "./_core/hooks/useAuth";
 import { trpc } from "./lib/trpc";
 import { WorkspaceLayout } from "./components/workspace-layout";
+import { PrivateWorkspaceSkeleton } from "./components/private-workspace-skeleton";
 import { LoginPage, LandingPage, RegisterPage } from "./pages/auth-pages";
 import { type CachedModule, loadAccountPage, loadClientCasesPage, loadClientCashPage, loadClientCompliancePage, loadClientDocumentsPage, loadClientFichePage, loadClientPaymentsPage, loadClientPrintPage, loadClientsPage, loadDashboardPage, loadNewClientPage, loadTransfersPage } from "./routes/private-route-preload";
 
@@ -13,7 +14,7 @@ function preloadedRoute<Props extends object>(loader: CachedModule<{ default: Co
   return function PreloadedRoute(props: Props) {
     const [Component, setComponent] = useState<ComponentType<Props> | undefined>(() => loader.get()?.default);
     useEffect(() => { if (!Component) void loader().then(module => setComponent(() => module.default)); }, [Component]);
-    if (!Component) return <div className="min-h-screen bg-[#f6f5f0] p-8 text-sm text-[#627785]" aria-busy="true">Préparation de votre espace…</div>;
+    if (!Component) return <PrivateWorkspaceSkeleton />;
     return <Component {...props} />;
   };
 }
@@ -34,7 +35,7 @@ const TransfersPage = preloadedRoute(loadTransfersPage);
 function ClientRoute({ clientId, children }: { clientId: number; children: ReactNode }) {
   const { loading, user } = useAuth({ redirectOnUnauthenticated: true });
   const query = trpc.clients.get.useQuery({ clientId }, { enabled: Boolean(user) && Number.isInteger(clientId) && clientId > 0 });
-  if (loading || query.isLoading) return <WorkspaceLayout><p className="text-sm text-[#627785]">Chargement du dossier sécurisé…</p></WorkspaceLayout>;
+  if (loading || query.isLoading) return <WorkspaceLayout><div className="mx-auto max-w-5xl space-y-6" aria-busy="true"><div className="h-4 w-28 rounded bg-[#dfe9e5]" /><div className="h-12 w-2/5 rounded bg-[#e3ebe8]" /><div className="h-10 w-full rounded bg-[#edf2f1]" /><div className="grid gap-5 xl:grid-cols-2">{[1, 2].map(item => <div key={item} className="h-64 rounded-xl border border-[#d5dfdc] bg-white/75" />)}</div></div></WorkspaceLayout>;
   if (query.error || !query.data) return <WorkspaceLayout><div className="mx-auto max-w-xl rounded-xl border border-[#d5dfdc] bg-white p-8 text-center"><p className="font-serif text-3xl text-[#102a43]">Dossier indisponible</p><p className="mt-3 text-sm leading-6 text-[#627785]">Ce dossier est introuvable ou n’est pas rattaché au compte connecté.</p><a href="/clients" className="mt-6 inline-flex rounded-lg bg-[#0f766e] px-4 py-2.5 text-sm font-bold text-white">Retour aux dossiers</a></div></WorkspaceLayout>;
   return <>{children}</>;
 }
@@ -60,6 +61,13 @@ function Router() {
   </Switch>;
 }
 
+function SessionWarmup() {
+  const [location] = useLocation();
+  const isPrivateRoute = location === "/dashboard" || location === "/clients" || location.startsWith("/clients/") || location === "/transferts" || location === "/compte";
+  trpc.account.me.useQuery(undefined, { enabled: isPrivateRoute, staleTime: 60_000, retry: false, refetchOnWindowFocus: false });
+  return null;
+}
+
 export default function App() {
-  return <ErrorBoundary><ThemeProvider defaultTheme="light"><Router /></ThemeProvider></ErrorBoundary>;
+  return <ErrorBoundary><ThemeProvider defaultTheme="light"><SessionWarmup /><Router /></ThemeProvider></ErrorBoundary>;
 }

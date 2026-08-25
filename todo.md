@@ -23,3 +23,7 @@
 - [x] Ajouter des tests d’isolation persistante A/B pour get, saveBundle, archive, exportData et commitImport sans conserver de données de test.
 - [x] Diagnostiquer et corriger le dysfonctionnement signalé après la version full-stack, puis vérifier le parcours concerné en condition réelle.
 - [x] Corriger l’erreur « Invalid hook call / useState null » entre React DOM et TRPCProvider signalée sur la page d’accueil publiée.
+- [x] Refaire l’impression pour n’imprimer que la fiche client, avec une mise en page A4 propre et l’option « Enregistrer au format PDF ».
+- [x] Rendre les exports JSON et XLSX structurés, lisibles et prêts à être archivés ou réimportés.
+- [x] Ajouter un tableau de bord détaillé comme page principale de l’espace connecté.
+- [x] Corriger l’espacement et la séparation des cartes dans Documents, Conformité, Dossiers, Paiements et Caisse.

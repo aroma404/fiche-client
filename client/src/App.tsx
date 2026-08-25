@@ -8,6 +8,7 @@ import { WorkspaceLayout } from "./components/workspace-layout";
 import { LoginPage, LandingPage, RegisterPage } from "./pages/auth-pages";
 import { AccountPage } from "./pages/account-page";
 import { ClientCasesPage, ClientCashPage, ClientCompliancePage, ClientDocumentsPage, ClientFichePage, ClientPaymentsPage, ClientPrintPage, ClientPrivacyPage, ClientsPage } from "./pages/clients-pages";
+import { DashboardPage } from "./pages/dashboard-page";
 import { TransfersPage } from "./pages/transfers-page";
 
 function ClientRoute({ clientId, children }: { clientId: number; children: React.ReactNode }) {
@@ -23,6 +24,7 @@ function Router() {
     <Route path="/" component={LandingPage} />
     <Route path="/connexion" component={LoginPage} />
     <Route path="/creer-un-compte" component={RegisterPage} />
+    <Route path="/dashboard" component={DashboardPage} />
     <Route path="/clients" component={ClientsPage} />
     <Route path="/clients/:clientId/fiche">{params => <ClientRoute clientId={Number(params.clientId)}><ClientFichePage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/documents">{params => <ClientRoute clientId={Number(params.clientId)}><ClientDocumentsPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>

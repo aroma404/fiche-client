@@ -14,10 +14,10 @@ describe("parseImport", () => {
     expect(result.clients[0].client).not.toHaveProperty("accountId");
   });
 
-  it("recompose un export XLSX avec ses feuilles de données associées", () => {
+  it("recompose l’archive XLSX structurée avec ses intitulés français", () => {
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([{ clientKey: 1, fullName: "Dossier Excel", initialBalance: 1200, accountId: 123 }]), "Clients");
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([{ clientKey: 1, label: "NIF", category: "Fiscal", status: "Reçu", note: "Validé" }]), "Documents");
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([{ "Clé dossier": 1, "Nom / raison sociale": "Dossier Excel", "Solde initial (DA)": 1200, accountId: 123 }]), "Clients");
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([{ "Clé dossier": 1, Document: "NIF", Catégorie: "Fiscal", Statut: "Reçu", Observation: "Validé" }]), "Documents");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([]), "Conformité");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([]), "Dossiers");
     XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet([]), "Paiements");

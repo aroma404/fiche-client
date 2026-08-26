@@ -109,3 +109,6 @@
 - [x] Rattacher chaque accès de coffre à un dossier client précis et afficher sa gestion uniquement dans la fiche de ce client.
 - [x] Ajouter une catégorie organisée à chaque accès client, dont Fiscal et Bancaire.
 - [x] Ajouter une recherche et un filtre par catégorie dans l’onglet Accès du client.
+- [x] Reconcevoir entièrement le système visuel, la navigation et les composants d’interface sans modifier les données ni les règles métier.
+- [x] Refaire explicitement les pages privées restantes — Compte, Réglages, Documents, Conformité et Impression — avec le nouveau système visuel.
+- [x] Vérifier et documenter les parcours privés principaux sur bureau, ainsi que le comportement responsive des écrans publics et des gabarits partagés : dashboard, registre, création, fiche, paiements, accès, transferts, archives, finances et compte.

@@ -1,30 +1,29 @@
-/* Atelier fiscal moderne — ivoire chaud, encre bleue et sarcelle d’atelier. */
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #f6f5f0;
-  --foreground: #102a43;
-  --card: #ffffff;
-  --card-foreground: #102a43;
-  --popover: #ffffff;
-  --popover-foreground: #102a43;
-  --primary: #0f766e;
+  --background: #f4f1e9;
+  --foreground: #182b3a;
+  --card: #fffdf8;
+  --card-foreground: #182b3a;
+  --popover: #fffdf8;
+  --popover-foreground: #182b3a;
+  --primary: #0b625e;
   --primary-foreground: #ffffff;
-  --secondary: #eaf1ee;
-  --secondary-foreground: #102a43;
-  --muted: #eef2f0;
-  --muted-foreground: #637784;
-  --accent: #edf5f3;
-  --accent-foreground: #0f4f4a;
-  --destructive: #b42318;
+  --secondary: #e8efea;
+  --secondary-foreground: #182b3a;
+  --muted: #eff0ea;
+  --muted-foreground: #63737d;
+  --accent: #e9f3ee;
+  --accent-foreground: #0b625e;
+  --destructive: #ad4339;
   --destructive-foreground: #ffffff;
-  --border: #d7e0df;
-  --input: #d7e0df;
-  --ring: #0f766e;
-  --radius: 0.75rem;
+  --border: #d6d9d0;
+  --input: #cfd6ce;
+  --ring: #0b625e;
+  --radius: 0.35rem;
 }
 
 @theme inline {
@@ -47,40 +46,45 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --radius-sm: calc(var(--radius) - 2px);
+  --radius-md: var(--radius);
+  --radius-lg: calc(var(--radius) + 3px);
+  --radius-xl: calc(var(--radius) + 6px);
   --font-sans: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-serif: Georgia, "Times New Roman", serif;
 }
 
 @layer base {
   * { @apply border-border outline-ring/50; }
-  body { @apply bg-background text-foreground font-sans; }
+  html { background: #f4f1e9; }
+  body { @apply bg-background text-foreground font-sans antialiased; }
   button:not(:disabled), a[href], select:not(:disabled), input:not(:disabled), textarea:not(:disabled) { @apply cursor-pointer; }
-  ::selection { background: #bde3d8; color: #102a43; }
+  button, a, input, textarea, select { transition: color 160ms cubic-bezier(.23,1,.32,1), background-color 160ms cubic-bezier(.23,1,.32,1), border-color 160ms cubic-bezier(.23,1,.32,1), transform 160ms cubic-bezier(.23,1,.32,1), box-shadow 160ms cubic-bezier(.23,1,.32,1); }
+  button:not(:disabled):active, a[href]:active { transform: scale(.98); }
+  ::selection { background: #b8ddd3; color: #182b3a; }
+  input::placeholder, textarea::placeholder { color: #9aa6a8; }
 }
 
 @layer components {
-  .app-enter { animation: app-enter 220ms cubic-bezier(0.23, 1, 0.32, 1) both; }
-  .editorial-rule { height: 3px; width: 48px; border-radius: 999px; background: #c99a3e; }
+  .app-enter { animation: app-enter 240ms cubic-bezier(.23,1,.32,1) both; }
+  .editorial-rule { height: 2px; width: 52px; background: #d29a3e; }
+  .document-grid { background-image: linear-gradient(rgba(24,43,58,.035) 1px, transparent 1px), linear-gradient(90deg, rgba(24,43,58,.025) 1px, transparent 1px); background-size: 28px 28px; }
+  .ui-sheet { border: 1px solid #d6d9d0; background: rgba(255,253,248,.94); box-shadow: 0 1px 0 rgba(24,43,58,.04), 0 14px 38px rgba(24,43,58,.045); }
+  .ui-sheet:hover { border-color: #bdc9c0; }
+  .ui-marker { border-left: 3px solid #0b625e; padding-left: .75rem; }
+  .ui-label { color: #587178; font-size: .66rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+  .ui-action { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; gap: .5rem; border: 1px solid #0b625e; background: #0b625e; padding: 0 .95rem; color: #fff; font-size: .875rem; font-weight: 750; }
+  .ui-action:hover { background: #084f4c; border-color: #084f4c; box-shadow: 0 8px 18px rgba(11,98,94,.16); }
+  .ui-action--quiet { border-color: #c7d0ca; background: #fffdf8; color: #182b3a; }
+  .ui-action--quiet:hover { border-color: #0b625e; background: #eef6f2; color: #0b625e; box-shadow: none; }
+  .ui-input { min-height: 2.75rem; width: 100%; border: 1px solid #cfd6ce; background: #fffefa; padding: 0 .8rem; color: #182b3a; font-size: .875rem; outline: none; }
+  .ui-input:focus { border-color: #0b625e; box-shadow: 0 0 0 3px rgba(11,98,94,.1); }
+  .status-dot { display: inline-block; height: .45rem; width: .45rem; border-radius: 999px; background: #0b625e; box-shadow: 0 0 0 3px rgba(11,98,94,.12); }
 }
 
-@keyframes app-enter { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes app-enter { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }
 
-.paper-hero-art {
-  background:
-    radial-gradient(circle at 80% 24%, rgba(201, 154, 62, 0.22) 0 2px, transparent 3px),
-    linear-gradient(135deg, transparent 0 54%, rgba(15, 118, 110, 0.86) 54% 100%),
-    linear-gradient(115deg, rgba(255,255,255,0.92) 0 48%, rgba(230,236,232,0.82) 48% 100%);
-}
-
-.paper-hero-art::before, .paper-hero-art::after { content: ""; position: absolute; border-radius: 0.75rem; transform: rotate(8deg); }
-.paper-hero-art::before { right: 10%; top: 17%; width: 44%; height: 66%; background: #f9f6e9; box-shadow: -10px 11px 0 rgba(16,42,67,0.09); }
-.paper-hero-art::after { right: 20%; bottom: 18%; width: 23%; height: 5px; background: #102a43; box-shadow: 0 10px 0 #102a43; }
-
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
 
 @media print {
   @page { size: A4; margin: 13mm; }
@@ -88,29 +92,34 @@
   body * { visibility: hidden !important; }
   .print-sheet, .print-sheet * { visibility: visible !important; }
   .print-sheet { position: absolute !important; inset: 0 !important; width: 100% !important; max-width: none !important; margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; padding: 0 !important; background: #fff !important; }
-  .print-sheet * { color: #102a43 !important; }
+  .print-sheet * { color: #182b3a !important; }
   .print-sheet section { break-inside: avoid; page-break-inside: avoid; }
   .no-print, .sidebar-shell, .topbar-shell { display: none !important; }
 }
 
 @media screen {
-  .print-sheet::before { content: "Pour créer un PDF : cliquez sur « Imprimer la fiche », puis choisissez « Enregistrer au format PDF » dans la fenêtre d’impression."; display: block; margin: -0.25rem 0 1.5rem; border: 1px solid #c8ddd7; border-radius: 0.75rem; background: #edf7f3; padding: 0.75rem 0.9rem; color: #426c62; font-size: 0.8125rem; font-weight: 650; line-height: 1.45; }
-  .client-register { margin-top: 1.5rem; box-shadow: 0 8px 20px rgba(16, 42, 67, 0.035); }
-  .client-register tbody tr { border-bottom: 1px solid #e5ece9; }
+  .print-sheet::before { content: "Pour créer un PDF : cliquez sur « Imprimer la fiche », puis choisissez « Enregistrer au format PDF » dans la fenêtre d’impression."; display: block; margin: -.25rem 0 1.5rem; border: 1px solid #c8ddd7; background: #edf7f3; padding: .75rem .9rem; color: #426c62; font-size: .8125rem; font-weight: 650; line-height: 1.45; }
+  .client-register { margin-top: 1.5rem; box-shadow: 0 1px 0 rgba(24,43,58,.04); }
+  .client-register tbody tr { border-bottom: 1px solid #e1e4dd; }
   .client-register tbody tr:last-child { border-bottom: 0; }
-  .client-register tbody td { padding: 0.95rem 1rem; vertical-align: middle; border-top: 1px solid #e5ece9; }
+  .client-register tbody td { padding: .95rem 1rem; vertical-align: middle; border-top: 1px solid #e1e4dd; }
   .client-register tbody tr:first-child td { border-top: 0; }
-  .client-register tbody tr:nth-child(even) td { background: #fbfdfc; }
+  .client-register tbody tr:nth-child(even) td { background: #fbfaf5; }
   .client-register tbody input, .client-register tbody select { min-height: 2.5rem; }
 }
 
-@media (min-width: 1024px) {
-  .sidebar-shell { position: sticky !important; top: 0; align-self: flex-start; height: 100vh; max-height: 100vh; overflow: hidden; }
-}
+@media (min-width: 1024px) { .sidebar-shell { position: sticky !important; top: 0; align-self: flex-start; height: 100vh; max-height: 100vh; overflow: hidden; } }
 
-.settings-input { height: 2.75rem; width: 100%; border: 1px solid #d5dfdc; border-radius: 0.6rem; background: #fff; padding: 0 0.8rem; font-size: 0.875rem; font-weight: 400; color: #102a43; outline: none; }
-.settings-input:focus { border-color: #0f766e; box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.11); }
-.settings-primary, .settings-dark { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; border-radius: 0.6rem; padding: 0 1rem; font-size: 0.875rem; font-weight: 700; color: #fff; }
-.settings-primary { background: #0f766e; }
-.settings-dark { background: #102a43; }
-.settings-primary:disabled, .settings-dark:disabled { opacity: 0.6; }
+.settings-input { min-height: 2.75rem; width: 100%; border: 1px solid #cfd6ce; border-radius: .2rem; background: #fffefa; padding: 0 .8rem; font-size: .875rem; font-weight: 400; color: #182b3a; outline: none; }
+.settings-input:focus { border-color: #0b625e; box-shadow: 0 0 0 3px rgba(11,98,94,.1); }
+.settings-primary, .settings-dark { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; border-radius: .2rem; padding: 0 1rem; font-size: .875rem; font-weight: 700; color: #fff; }
+.settings-primary { background: #0b625e; }.settings-dark { background: #182b3a; }.settings-primary:disabled, .settings-dark:disabled { opacity: .6; }
+
+/* Les écrans métier historiques héritent du nouveau langage de registre sans modifier leurs procédures. */
+.workspace-main .rounded-2xl { border-radius: 0 !important; }
+.workspace-main .rounded-xl { border-radius: .18rem !important; }
+.workspace-main .rounded-lg { border-radius: .12rem !important; }
+.workspace-main :is(input:not([type="checkbox"]), textarea) { border-radius: 0 !important; background: #fffefa !important; }
+.workspace-main :is(input:not([type="checkbox"]), textarea):focus { border-color: #0b625e !important; box-shadow: 0 0 0 3px rgba(11,98,94,.1); }
+.workspace-main .bg-white { background-color: #fffdf8; }
+.workspace-main .shadow-\[0_10px_28px_rgba\(16\,42\,67\,0\.04\)\], .workspace-main .shadow-\[0_12px_32px_rgba\(16\,42\,67\,0\.05\)\] { box-shadow: 0 1px 0 rgba(24,43,58,.05), 0 12px 26px rgba(24,43,58,.035); }

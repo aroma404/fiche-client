@@ -13,7 +13,7 @@ function cachedModule<T>(load: () => Promise<T>): CachedModule<T> {
 export const loadAccountPage = cachedModule(() => import("@/pages/account-page").then(module => ({ default: module.AccountPage })));
 export const loadProgramSettingsPage = cachedModule(() => import("@/features/program-settings/program-settings-page").then(module => ({ default: module.ProgramSettingsPage })));
 export const loadNewClientPage = cachedModule(() => import("@/features/clients/new-client-page").then(module => ({ default: module.NewClientPage })));
-export const loadClientsPage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientsPage })));
+export const loadClientsPage = cachedModule(() => import("@/features/clients/client-register-page").then(module => ({ default: module.ClientRegisterPage })));
 export const loadClientFichePage = cachedModule(() => import("@/features/clients/client-fiche-page").then(module => ({ default: module.ClientFichePage })));
 export const loadClientDocumentsPage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientDocumentsPage })));
 export const loadClientCompliancePage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientCompliancePage })));

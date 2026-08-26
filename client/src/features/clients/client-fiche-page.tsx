@@ -9,7 +9,7 @@ import { ArrowLeft, Check, Mail, MessageCircle, Phone, Plus, Save, Trash2 } from
 import { useEffect, useState } from "react";
 import { Link } from "wouter";
 
-const tabs = [{ slug: "fiche", label: "Fiche" }, { slug: "documents", label: "Documents" }, { slug: "conformite", label: "Conformité" }, { slug: "paiements", label: "Paiements" }, { slug: "impression", label: "Impression" }];
+const tabs = [{ slug: "fiche", label: "Fiche" }, { slug: "documents", label: "Documents" }, { slug: "conformite", label: "Conformité" }, { slug: "paiements", label: "Paiements" }, { slug: "coffre", label: "Accès" }, { slug: "impression", label: "Impression" }];
 
 export function ClientFichePage({ clientId }: { clientId: number }) {
   const query = trpc.clients.get.useQuery({ clientId });

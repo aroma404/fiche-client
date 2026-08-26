@@ -106,3 +106,4 @@
 - [x] Rendre le centre d’impôt modifiable manuellement et supprimer le texte explicatif de calcul automatique.
 - [x] Créer une page Archives des dossiers clients supprimés, avec échéance des 30 jours et restauration des dossiers récupérables.
 - [x] Ajouter un lien e-mail direct dans les contacts pour ouvrir immédiatement un nouveau message au destinataire.
+- [x] Rattacher chaque accès de coffre à un dossier client précis et afficher sa gestion uniquement dans la fiche de ce client.

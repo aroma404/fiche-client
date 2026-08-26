@@ -6,7 +6,7 @@ import { ArrowDownRight, ArrowLeft, ArrowUpRight, Check, Landmark, Save, WalletC
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 
-const clientTabs = [{ slug: "fiche", label: "Fiche" }, { slug: "documents", label: "Documents" }, { slug: "conformite", label: "Conformité" }, { slug: "paiements", label: "Paiements" }, { slug: "impression", label: "Impression" }];
+const clientTabs = [{ slug: "fiche", label: "Fiche" }, { slug: "documents", label: "Documents" }, { slug: "conformite", label: "Conformité" }, { slug: "paiements", label: "Paiements" }, { slug: "coffre", label: "Accès" }, { slug: "impression", label: "Impression" }];
 
 export function ClientPaymentsPage({ clientId }: { clientId: number }) {
   const query = trpc.clients.get.useQuery({ clientId });

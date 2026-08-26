@@ -11,7 +11,7 @@ import { Archive, ArrowLeft, Check, ChevronRight, FileDown, FolderOpen, Plus, Pr
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 
-const tabs = [{ slug: "fiche", label: "Fiche" }, { slug: "documents", label: "Documents" }, { slug: "conformite", label: "Conformité" }, { slug: "paiements", label: "Paiements" }, { slug: "impression", label: "Impression" }];
+const tabs = [{ slug: "fiche", label: "Fiche" }, { slug: "documents", label: "Documents" }, { slug: "conformite", label: "Conformité" }, { slug: "paiements", label: "Paiements" }, { slug: "coffre", label: "Accès" }, { slug: "impression", label: "Impression" }];
 type LegacyClientDraft = Omit<ClientDraft, "client"> & { client: Omit<ClientDraft["client"], "initialBalance"> & { initialBalance: number } };
 
 export function ClientsPage() { return <WorkspaceLayout><ClientsContent /></WorkspaceLayout>; }

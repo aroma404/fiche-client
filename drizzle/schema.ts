@@ -47,10 +47,11 @@ export const accountSessions = mysqlTable("account_sessions", {
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 }, table => [index("account_sessions_account_idx").on(table.accountId)]);
 
-/** Coffre chiffré côté serveur, strictement isolé par compte. */
+/** Coffre chiffré côté serveur, strictement isolé par compte et par dossier client. */
 export const passwordVaultEntries = mysqlTable("password_vault_entries", {
   id: int("id").autoincrement().primaryKey(),
   accountId: int("accountId").notNull(),
+  clientId: int("clientId"),
   platformName: varchar("platformName", { length: 180 }).notNull(),
   platformUrl: varchar("platformUrl", { length: 1200 }).default(""),
   email: varchar("email", { length: 320 }).default(""),
@@ -63,7 +64,7 @@ export const passwordVaultEntries = mysqlTable("password_vault_entries", {
   purgeAfter: timestamp("purgeAfter"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, table => [index("password_vault_entries_account_idx").on(table.accountId)]);
+}, table => [index("password_vault_entries_account_idx").on(table.accountId), index("password_vault_entries_account_client_idx").on(table.accountId, table.clientId)]);
 
 export const clients = mysqlTable("clients", {
   id: int("id").autoincrement().primaryKey(),

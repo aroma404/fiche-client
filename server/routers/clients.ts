@@ -2,7 +2,7 @@
 
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { cabinetFinanceEntries, clientCashEntries, clientCompliance, clientContacts, clientDocuments, clientPayments, clients, clientWorkCases } from "../../drizzle/schema";
+import { cabinetFinanceEntries, clientCashEntries, clientCompliance, clientContacts, clientDocuments, clientPayments, clients, clientWorkCases, passwordVaultEntries } from "../../drizzle/schema";
 import { isRegistreCommerceActivity, registreCommerceActivities } from "../../shared/registre-commerce-activities";
 import { getCurrentAccount, requireCurrentAccount } from "../account-context";
 import { canonicalActivityLabel } from "../client-activity";
@@ -138,12 +138,13 @@ export const clientsRouter = router({
     const db = await getDb();
     if (!db) throw new Error("La base de données est indisponible.");
     const now = new Date();
-    await db.update(clients).set({ archivedAt: now, deletedAt: now, purgeAfter: purgeAfterThirtyDays() }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id)));
+    const purgeAfter = purgeAfterThirtyDays();
+    await db.transaction(async tx => { await tx.update(clients).set({ archivedAt: now, deletedAt: now, purgeAfter }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id))); await tx.update(passwordVaultEntries).set({ deletedAt: now, purgeAfter }).where(and(eq(passwordVaultEntries.clientId, input.clientId), eq(passwordVaultEntries.accountId, account.id), isNull(passwordVaultEntries.deletedAt))); });
     return { success: true } as const;
   }),
   restore: publicProcedure.input(z.object({ clientId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
-    await db.update(clients).set({ archivedAt: null, deletedAt: null, purgeAfter: null }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id)));
+    await db.transaction(async tx => { await tx.update(clients).set({ archivedAt: null, deletedAt: null, purgeAfter: null }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id))); await tx.update(passwordVaultEntries).set({ deletedAt: null, purgeAfter: null }).where(and(eq(passwordVaultEntries.clientId, input.clientId), eq(passwordVaultEntries.accountId, account.id), isNotNull(passwordVaultEntries.deletedAt))); });
     return { success: true } as const;
   }),
 });

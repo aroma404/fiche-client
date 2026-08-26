@@ -97,6 +97,7 @@
 - [x] Corriger la largeur et le comportement responsive des réglages pour empêcher tout dépassement d’écran.
 - [x] Archiver 30 jours les dossiers clients, contacts, statuts et valeurs administratives, avec restauration et gestionnaire de purge sécurisé prêt à être activé après publication.
 - [x] Retirer l’étape 2 « Périmètre de l’export » en conservant uniquement les étapes 1 et 3.
+- [x] Supprimer entièrement le choix « Tous les clients du compte » et faire passer la sélection manuelle à l’étape 2.
 - [x] Déplacer la gestion des contacts dans un bloc autonome de la fiche et supprimer la présentation « Contact principal » confuse.
 - [x] Rendre le centre d’impôt modifiable manuellement et supprimer le texte explicatif de calcul automatique.
 - [x] Créer une page Archives des dossiers clients supprimés, avec échéance des 30 jours et restauration des dossiers récupérables.

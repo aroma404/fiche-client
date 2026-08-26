@@ -9,7 +9,7 @@ import { WorkspaceLayout } from "./components/workspace-layout";
 import { PrivateWorkspaceSkeleton } from "./components/private-workspace-skeleton";
 import { LoginPage, LandingPage, RegisterPage } from "./pages/auth-pages";
 import { UsageConventionPage } from "./pages/usage-convention-page";
-import { type CachedModule, loadAccountPage, loadCabinetFinancePage, loadClientCompliancePage, loadClientDocumentsPage, loadClientFichePage, loadClientPaymentsPage, loadClientPrintPage, loadClientsPage, loadDashboardPage, loadNewClientPage, loadProgramSettingsPage, loadTransfersPage } from "./routes/private-route-preload";
+import { type CachedModule, loadAccountPage, loadArchivesPage, loadCabinetFinancePage, loadClientCompliancePage, loadClientDocumentsPage, loadClientFichePage, loadClientPaymentsPage, loadClientPrintPage, loadClientsPage, loadDashboardPage, loadNewClientPage, loadProgramSettingsPage, loadTransfersPage } from "./routes/private-route-preload";
 
 function preloadedRoute<Props extends object>(loader: CachedModule<{ default: ComponentType<Props> }>) {
   return function PreloadedRoute(props: Props) {
@@ -32,6 +32,7 @@ const ClientPrintPage = preloadedRoute(loadClientPrintPage);
 const DashboardPage = preloadedRoute(loadDashboardPage);
 const TransfersPage = preloadedRoute(loadTransfersPage);
 const CabinetFinancePage = preloadedRoute(loadCabinetFinancePage);
+const ArchivesPage = preloadedRoute(loadArchivesPage);
 
 function ClientRoute({ clientId, children }: { clientId: number; children: ReactNode }) {
   const { loading, user } = useAuth({ redirectOnUnauthenticated: true });
@@ -57,6 +58,7 @@ function Router() {
     <Route path="/clients/:clientId/impression">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPrintPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/transferts" component={TransfersPage} />
     <Route path="/finances" component={CabinetFinancePage} />
+    <Route path="/archives" component={ArchivesPage} />
     <Route path="/reglages" component={ProgramSettingsPage} />
     <Route path="/compte" component={AccountPage} />
     <Route>{() => <LandingPage />}</Route>
@@ -65,7 +67,7 @@ function Router() {
 
 function SessionWarmup() {
   const [location] = useLocation();
-  const isPrivateRoute = location === "/dashboard" || location === "/clients" || location.startsWith("/clients/") || location === "/finances" || location === "/transferts" || location === "/reglages" || location === "/compte";
+  const isPrivateRoute = location === "/dashboard" || location === "/clients" || location.startsWith("/clients/") || location === "/finances" || location === "/archives" || location === "/transferts" || location === "/reglages" || location === "/compte";
   trpc.account.me.useQuery(undefined, { enabled: isPrivateRoute, staleTime: 60_000, retry: false, refetchOnWindowFocus: false });
   return null;
 }

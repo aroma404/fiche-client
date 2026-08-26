@@ -1,4 +1,4 @@
-import { Download, Landmark, LayoutDashboard, Settings2, Users, type LucideIcon } from "lucide-react";
+import { ArchiveRestore, Download, Landmark, LayoutDashboard, Settings2, Users, type LucideIcon } from "lucide-react";
 
 export type WorkspaceFeature = { href: string; label: string; sectionTitle: string; icon: LucideIcon };
 
@@ -8,6 +8,7 @@ export const workspaceFeatures: readonly WorkspaceFeature[] = [
   { href: "/clients", label: "Dossiers clients", sectionTitle: "Dossiers clients", icon: Users },
   { href: "/finances", label: "Finances du cabinet", sectionTitle: "Finances du cabinet", icon: Landmark },
   { href: "/transferts", label: "Importer / exporter", sectionTitle: "Importation et exportation", icon: Download },
+  { href: "/archives", label: "Archives", sectionTitle: "Archives", icon: ArchiveRestore },
   { href: "/reglages", label: "Réglages du programme", sectionTitle: "Réglages du programme", icon: Settings2 },
 ];
 

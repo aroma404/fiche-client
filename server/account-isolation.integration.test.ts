@@ -3,7 +3,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import { accountSessions, accounts, cabinetFinanceEntries, clients, exportAudit, programClientStatuses } from "../drizzle/schema";
+import { accountSessions, accounts, cabinetFinanceEntries, clientContacts, clients, exportAudit, programClientOptions, programClientStatuses } from "../drizzle/schema";
 import { getDb, getOwnedClient } from "./db";
 import { signAccountSession } from "./auth/session";
 import { clientsRouter } from "./routers/clients";
@@ -46,8 +46,10 @@ suite("isolation persistante A/B", () => {
     const clientIds = [clientA, clientA2, importedForB].filter(Boolean);
     if (accountIds.length) await db.delete(exportAudit).where(inArray(exportAudit.accountId, accountIds));
     if (accountIds.length) await db.delete(cabinetFinanceEntries).where(inArray(cabinetFinanceEntries.accountId, accountIds));
+    if (clientIds.length) await db.delete(clientContacts).where(inArray(clientContacts.clientId, clientIds));
     if (clientIds.length) await db.delete(clients).where(inArray(clients.id, clientIds));
     if (accountIds.length) await db.delete(programClientStatuses).where(inArray(programClientStatuses.accountId, accountIds));
+    if (accountIds.length) await db.delete(programClientOptions).where(inArray(programClientOptions.accountId, accountIds));
     if (accountIds.length) await db.delete(accountSessions).where(inArray(accountSessions.accountId, accountIds));
     if (accountIds.length) await db.delete(accounts).where(inArray(accounts.id, accountIds));
   });
@@ -101,5 +103,30 @@ suite("isolation persistante A/B", () => {
     await expect(financeB.remove({ entryId: created.entryId })).resolves.toEqual({ success: true });
     await expect(financeA.list({ clientId: clientA })).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: created.entryId, accountId: accountA, clientId: clientA })]));
     await expect(transfersRouter.createCaller(contextFor(tokenA)).exportData({ format: "json", scope: "selected", clientIds: [clientA] })).resolves.toMatchObject({ clients: [expect.objectContaining({ client: expect.objectContaining({ id: clientA }), financeEntries: expect.arrayContaining([expect.objectContaining({ category: "Caisse", label: "Opération depuis la fiche", amount: "80.00" }), expect.objectContaining({ id: created.entryId, category: "Paiement", amount: "1200.00" })]) })] });
+  });
+
+  it("liste et restaure les contacts, statuts et valeurs archivés dans leur seul compte", async () => {
+    const tokenA = await signAccountSession(accountA, sessionA); const tokenB = await signAccountSession(accountB, sessionB);
+    const contactsA = clientsRouter.createCaller(contextFor(tokenA)).contacts; const contactsB = clientsRouter.createCaller(contextFor(tokenB)).contacts;
+    await contactsA.create({ clientId: clientA, contact: { label: "Archive contact", type: "Téléphone", value: "+213550000000", isPrimary: false } });
+    const contact = (await contactsA.list({ clientId: clientA })).find(item => item.label === "Archive contact"); if (!contact) throw new Error("Contact de test absent.");
+    await contactsA.archive({ id: contact.id, clientId: clientA });
+    await expect(contactsA.archived()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: contact.id, clientId: clientA })]));
+    await expect(contactsB.restore({ id: contact.id, clientId: clientA })).rejects.toThrow("Client introuvable.");
+    await contactsA.restore({ id: contact.id, clientId: clientA });
+    await expect(contactsA.list({ clientId: clientA })).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: contact.id })]));
+
+    const settingsA = programSettingsRouter.createCaller(contextFor(tokenA)); const settingsB = programSettingsRouter.createCaller(contextFor(tokenB));
+    const status = await settingsA.clientStatuses.create({ label: "Archive statut", isOperational: false }); await settingsA.clientStatuses.remove({ id: status.id });
+    await expect(settingsA.clientStatuses.archived()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: status.id })]));
+    await expect(settingsB.clientStatuses.restore({ id: status.id })).resolves.toEqual({ success: true });
+    await expect(settingsA.clientStatuses.archived()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: status.id })]));
+    await settingsA.clientStatuses.restore({ id: status.id });
+
+    const option = await settingsA.clientOptions.create({ kind: "clientType", label: "Archive valeur" }); await settingsA.clientOptions.remove({ id: option.id });
+    await expect(settingsA.clientOptions.archived()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: option.id })]));
+    await expect(settingsB.clientOptions.restore({ id: option.id })).resolves.toEqual({ success: true });
+    await expect(settingsA.clientOptions.archived()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: option.id })]));
+    await settingsA.clientOptions.restore({ id: option.id });
   });
 });

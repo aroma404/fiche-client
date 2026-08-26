@@ -1,6 +1,6 @@
 /** Atelier fiscal moderne — données multi-clients persistantes, chacune bornée au compte de la session. */
 
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { cabinetFinanceEntries, clientCashEntries, clientCompliance, clientContacts, clientDocuments, clientPayments, clients, clientWorkCases } from "../../drizzle/schema";
 import { isRegistreCommerceActivity, registreCommerceActivities } from "../../shared/registre-commerce-activities";
@@ -107,6 +107,10 @@ export const clientsRouter = router({
       const account = await requireCurrentAccount(ctx.req); if (!(await getOwnedClient(account.id, input.clientId))) throw new Error("Client introuvable."); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
       return db.select().from(clientContacts).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt)));
     }),
+    archived: publicProcedure.query(async ({ ctx }) => {
+      const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
+      return db.select({ id: clientContacts.id, clientId: clientContacts.clientId, label: clientContacts.label, type: clientContacts.type, value: clientContacts.value, deletedAt: clientContacts.deletedAt, purgeAfter: clientContacts.purgeAfter, clientName: clients.fullName }).from(clientContacts).innerJoin(clients, eq(clientContacts.clientId, clients.id)).where(and(eq(clients.accountId, account.id), isNotNull(clientContacts.deletedAt)));
+    }),
     create: publicProcedure.input(z.object({ clientId: z.number().int().positive(), contact: contactInput })).mutation(async ({ ctx, input }) => {
       const account = await requireCurrentAccount(ctx.req); if (!(await getOwnedClient(account.id, input.clientId))) throw new Error("Client introuvable."); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
       await db.transaction(async tx => { if (input.contact.isPrimary) await tx.update(clientContacts).set({ isPrimary: false }).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))); const inserted = await tx.insert(clientContacts).values({ clientId: input.clientId, ...input.contact }); if (input.contact.isPrimary) await tx.update(clients).set({ contact: input.contact.value }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id))); return inserted; });
@@ -121,6 +125,10 @@ export const clientsRouter = router({
     archive: publicProcedure.input(z.object({ id: z.number().int().positive(), clientId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
       const account = await requireCurrentAccount(ctx.req); if (!(await getOwnedClient(account.id, input.clientId))) throw new Error("Client introuvable."); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
       await db.update(clientContacts).set({ deletedAt: new Date(), purgeAfter: purgeAfterThirtyDays(), isPrimary: false }).where(and(eq(clientContacts.id, input.id), eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))); return { success: true } as const;
+    }),
+    restore: publicProcedure.input(z.object({ id: z.number().int().positive(), clientId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
+      const account = await requireCurrentAccount(ctx.req); if (!(await getOwnedClient(account.id, input.clientId))) throw new Error("Client introuvable."); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
+      await db.update(clientContacts).set({ deletedAt: null, purgeAfter: null }).where(and(eq(clientContacts.id, input.id), eq(clientContacts.clientId, input.clientId))); return { success: true } as const;
     }),
   }),
   archive: publicProcedure.input(z.object({ clientId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {

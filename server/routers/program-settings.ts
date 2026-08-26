@@ -1,4 +1,5 @@
 import { and, asc, eq, isNull } from "drizzle-orm";
+import { isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import { clients, programClientOptions, programClientStatuses } from "../../drizzle/schema";
 import { requireCurrentAccount } from "../account-context";
@@ -20,6 +21,8 @@ export const programSettingsRouter = router({
       if (!db) throw new Error("La base de données est indisponible.");
       return listProgramClientStatuses(db, account.id);
     }),
+    archived: publicProcedure.query(async ({ ctx }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return db.select().from(programClientStatuses).where(and(eq(programClientStatuses.accountId, account.id), isNotNull(programClientStatuses.deletedAt))); }),
+    restore: publicProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); await db.update(programClientStatuses).set({ deletedAt: null, purgeAfter: null }).where(and(eq(programClientStatuses.id, input.id), eq(programClientStatuses.accountId, account.id))); return { success: true } as const; }),
     create: publicProcedure.input(z.object({ label: statusLabel, isOperational: z.boolean() })).mutation(async ({ ctx, input }) => {
       const account = await requireCurrentAccount(ctx.req);
       const db = await getDb();
@@ -65,6 +68,8 @@ export const programSettingsRouter = router({
       const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
       return listProgramClientOptions(db, account.id, input.kind);
     }),
+    archived: publicProcedure.query(async ({ ctx }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return db.select().from(programClientOptions).where(and(eq(programClientOptions.accountId, account.id), isNotNull(programClientOptions.deletedAt))); }),
+    restore: publicProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); await db.update(programClientOptions).set({ deletedAt: null, purgeAfter: null }).where(and(eq(programClientOptions.id, input.id), eq(programClientOptions.accountId, account.id))); return { success: true } as const; }),
     create: publicProcedure.input(z.object({ kind: optionKind, label: optionLabel })).mutation(async ({ ctx, input }) => {
       const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
       const items = await listProgramClientOptions(db, account.id, input.kind);

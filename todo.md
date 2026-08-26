@@ -95,7 +95,8 @@
 - [x] Ajouter des contacts multiples avec liens sécurisés vers téléphone et e-mail.
 - [x] Simplifier Réglages du programme et y rendre administrables les listes client autorisées.
 - [x] Corriger la largeur et le comportement responsive des réglages pour empêcher tout dépassement d’écran.
-- [ ] Mettre les suppressions en archive pendant 30 jours puis purger automatiquement les éléments arrivés à échéance (activation après publication).
+- [x] Archiver 30 jours les dossiers clients, contacts, statuts et valeurs administratives, avec restauration et gestionnaire de purge sécurisé prêt à être activé après publication.
 - [x] Retirer l’étape 2 « Périmètre de l’export » en conservant uniquement les étapes 1 et 3.
 - [x] Déplacer la gestion des contacts dans un bloc autonome de la fiche et supprimer la présentation « Contact principal » confuse.
 - [x] Rendre le centre d’impôt modifiable manuellement et supprimer le texte explicatif de calcul automatique.
+- [x] Créer une page Archives des dossiers clients supprimés, avec échéance des 30 jours et restauration des dossiers récupérables.

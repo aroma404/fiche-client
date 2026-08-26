@@ -112,3 +112,6 @@
 - [x] Reconcevoir entièrement le système visuel, la navigation et les composants d’interface sans modifier les données ni les règles métier.
 - [x] Refaire explicitement les pages privées restantes — Compte, Réglages, Documents, Conformité et Impression — avec le nouveau système visuel.
 - [x] Vérifier et documenter les parcours privés principaux sur bureau, ainsi que le comportement responsive des écrans publics et des gabarits partagés : dashboard, registre, création, fiche, paiements, accès, transferts, archives, finances et compte.
+- [x] Harmoniser la hauteur des listes déroulantes avec celle des champs de saisie dans toute l’interface.
+- [x] Corriger les dépassements et l’agencement responsive des écrans concernés.
+- [x] Retirer le voile sombre global de la fenêtre de protection des exports en conservant un focus léger sur la boîte de dialogue.

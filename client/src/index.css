@@ -120,6 +120,17 @@
 .workspace-main .rounded-xl { border-radius: .18rem !important; }
 .workspace-main .rounded-lg { border-radius: .12rem !important; }
 .workspace-main :is(input:not([type="checkbox"]), textarea) { border-radius: 0 !important; background: #fffefa !important; }
+.workspace-main :is(button[role="combobox"], [data-slot="select-trigger"]) { min-height: 2.75rem !important; border-radius: 0 !important; background: #fffefa !important; }
 .workspace-main :is(input:not([type="checkbox"]), textarea):focus { border-color: #0b625e !important; box-shadow: 0 0 0 3px rgba(11,98,94,.1); }
 .workspace-main .bg-white { background-color: #fffdf8; }
 .workspace-main .shadow-\[0_10px_28px_rgba\(16\,42\,67\,0\.04\)\], .workspace-main .shadow-\[0_12px_32px_rgba\(16\,42\,67\,0\.05\)\] { box-shadow: 0 1px 0 rgba(24,43,58,.05), 0 12px 26px rgba(24,43,58,.035); }
+
+@media (max-width: 639px) {
+  .workspace-main { padding: .9rem !important; }
+  .workspace-main .app-enter { min-width: 0; }
+  .workspace-main :is(.ui-sheet, form, section, article) { min-width: 0; }
+  .workspace-main .ui-action { width: 100%; }
+  .workspace-main :is(.overflow-x-auto, [class*="overflow-x-auto"]) { -webkit-overflow-scrolling: touch; }
+  .workspace-main h1 { font-size: clamp(2rem, 11vw, 2.8rem) !important; }
+  .workspace-main :is(input, textarea, button[role="combobox"]) { max-width: 100%; }
+}

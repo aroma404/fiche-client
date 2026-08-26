@@ -115,3 +115,4 @@
 - [x] Harmoniser la hauteur des listes déroulantes avec celle des champs de saisie dans toute l’interface.
 - [x] Corriger les dépassements et l’agencement responsive des écrans concernés.
 - [x] Retirer le voile sombre global de la fenêtre de protection des exports en conservant un focus léger sur la boîte de dialogue.
+- [x] Étendre Réglages du programme avec la gestion des statuts, listes client, règles fiscales, référentiel d’activité et conservation des archives du cabinet.

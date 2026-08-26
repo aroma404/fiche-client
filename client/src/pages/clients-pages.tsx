@@ -2,6 +2,7 @@
 
 import { PageTitle, useWorkspaceClients, WorkspaceLayout } from "@/components/workspace-layout";
 import { AppSelect } from "@/components/form/app-select";
+import { clientFeatureRegistry } from "@/core/registry-index";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { downloadFichePdf } from "@/features/fiche/fiche-pdf";
 import { OfficialPrintContent } from "@/features/fiche/official-print-content";
@@ -11,7 +12,7 @@ import { Archive, ArrowLeft, Check, ChevronRight, FileDown, FolderOpen, Plus, Pr
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 
-const tabs = [{ slug: "fiche", label: "Fiche" }, { slug: "documents", label: "Documents" }, { slug: "conformite", label: "Conformité" }, { slug: "paiements", label: "Paiements" }, { slug: "coffre", label: "Accès" }, { slug: "impression", label: "Impression" }];
+const tabs = clientFeatureRegistry;
 type LegacyClientDraft = Omit<ClientDraft, "client"> & { client: Omit<ClientDraft["client"], "initialBalance"> & { initialBalance: number } };
 
 export function ClientsPage() { return <WorkspaceLayout><ClientsContent /></WorkspaceLayout>; }

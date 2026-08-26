@@ -110,6 +110,11 @@
 
 @media (min-width: 1024px) { .sidebar-shell { position: sticky !important; top: 0; align-self: flex-start; height: 100vh; max-height: 100vh; overflow: hidden; } }
 
+@media (max-width: 1023px) {
+  .sidebar-shell { display: none !important; }
+  [role="dialog"] .sidebar-shell { display: flex !important; height: 100%; }
+}
+
 .settings-input { min-height: 2.75rem; width: 100%; border: 1px solid #cfd6ce; border-radius: .2rem; background: #fffefa; padding: 0 .8rem; font-size: .875rem; font-weight: 400; color: #182b3a; outline: none; }
 .settings-input:focus { border-color: #0b625e; box-shadow: 0 0 0 3px rgba(11,98,94,.1); }
 .settings-primary, .settings-dark { display: inline-flex; min-height: 2.75rem; align-items: center; justify-content: center; border-radius: .2rem; padding: 0 1rem; font-size: .875rem; font-weight: 700; color: #fff; }

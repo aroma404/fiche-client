@@ -12,10 +12,15 @@ const financeInput = z.object({
   entryDate: z.string().min(4).max(30),
   category: z.enum(["Paiement", "Caisse"]),
   direction: z.enum(["Entrée", "Sortie"]),
+  counterpartyName: z.string().trim().max(220).default(""),
   label: z.string().trim().min(1).max(180),
   reference: z.string().trim().max(160).default(""),
   amount: z.number().positive(),
   note: z.string().trim().max(500).default(""),
+}).superRefine((entry, ctx) => {
+  if (entry.category !== "Paiement") return;
+  if (!entry.clientId && !entry.counterpartyName) ctx.addIssue({ code: "custom", path: ["counterpartyName"], message: "Choisissez un dossier ou indiquez le nom du client non enregistré." });
+  if (entry.clientId && entry.counterpartyName) ctx.addIssue({ code: "custom", path: ["counterpartyName"], message: "Un paiement est lié soit à un dossier, soit à un client non enregistré." });
 });
 
 export const cabinetFinanceRouter = router({

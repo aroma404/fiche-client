@@ -1,12 +1,13 @@
 /** Vue client : même système visuel que Finances du cabinet, limité aux opérations de ce dossier. */
 import { WorkspaceLayout } from "@/components/workspace-layout";
+import { clientFeatureRegistry } from "@/core/registry-index";
 import { formatDA, normalizeBundle, paymentTotal, type ClientDraft } from "@/lib/client-data";
 import { trpc } from "@/lib/trpc";
 import { ArrowDownRight, ArrowLeft, ArrowUpRight, Check, Landmark, Save, WalletCards } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 
-const clientTabs = [{ slug: "fiche", label: "Fiche" }, { slug: "documents", label: "Documents" }, { slug: "conformite", label: "Conformité" }, { slug: "paiements", label: "Paiements" }, { slug: "coffre", label: "Accès" }, { slug: "impression", label: "Impression" }];
+const clientTabs = clientFeatureRegistry;
 
 export function ClientPaymentsPage({ clientId }: { clientId: number }) {
   const query = trpc.clients.get.useQuery({ clientId });

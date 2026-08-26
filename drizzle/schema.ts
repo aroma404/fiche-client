@@ -197,6 +197,7 @@ export const cabinetFinanceEntries = mysqlTable("cabinet_finance_entries", {
   entryDate: varchar("entryDate", { length: 30 }).notNull(),
   category: mysqlEnum("category", ["Paiement", "Caisse"]).notNull(),
   direction: mysqlEnum("direction", ["Entrée", "Sortie"]).notNull(),
+  counterpartyName: varchar("counterpartyName", { length: 220 }).default("").notNull(),
   label: varchar("label", { length: 180 }).notNull(),
   reference: varchar("reference", { length: 160 }).default(""),
   amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),

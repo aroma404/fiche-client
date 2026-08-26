@@ -1,14 +1,14 @@
-/** Espace financier du cabinet : chaque opération appartient au compte et peut viser un client. */
-
-import { PageTitle, useWorkspaceClients, WorkspaceLayout } from "@/components/workspace-layout";
 import { AppSelect } from "@/components/form/app-select";
+import { PageTitle, useWorkspaceClients, WorkspaceLayout } from "@/components/workspace-layout";
 import { formatDA } from "@/lib/client-data";
 import { trpc } from "@/lib/trpc";
-import { ArrowDownRight, ArrowUpRight, Landmark, Plus, Trash2, WalletCards } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Landmark, Plus, ReceiptText, Trash2, UserRound, WalletCards } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 
 type FinanceForm = {
+  association: "registered" | "external";
   clientId: string;
+  counterpartyName: string;
   entryDate: string;
   category: "Paiement" | "Caisse";
   direction: "Entrée" | "Sortie";
@@ -19,7 +19,9 @@ type FinanceForm = {
 };
 
 const initialForm = (): FinanceForm => ({
+  association: "registered",
   clientId: "",
+  counterpartyName: "",
   entryDate: new Date().toISOString().slice(0, 10),
   category: "Paiement",
   direction: "Entrée",
@@ -29,7 +31,9 @@ const initialForm = (): FinanceForm => ({
   note: "",
 });
 
-export function CabinetFinancePage() { return <WorkspaceLayout><CabinetFinanceContent /></WorkspaceLayout>; }
+export function CabinetFinancePage() {
+  return <WorkspaceLayout><CabinetFinanceContent /></WorkspaceLayout>;
+}
 
 function CabinetFinanceContent() {
   const { clients } = useWorkspaceClients();
@@ -50,13 +54,16 @@ function CabinetFinanceContent() {
   const incoming = entries.filter(entry => entry.direction === "Entrée").reduce((sum, entry) => sum + Number(entry.amount), 0);
   const outgoing = entries.filter(entry => entry.direction === "Sortie").reduce((sum, entry) => sum + Number(entry.amount), 0);
   const cashBalance = entries.filter(entry => entry.category === "Caisse").reduce((sum, entry) => sum + (entry.direction === "Entrée" ? Number(entry.amount) : -Number(entry.amount)), 0);
+  const isPayment = form.category === "Paiement";
+  const hasPaymentParty = !isPayment || (form.association === "registered" ? Boolean(form.clientId) : Boolean(form.counterpartyName.trim()));
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
     const amount = Number(form.amount);
-    if (!form.label.trim() || !Number.isFinite(amount) || amount <= 0) return;
+    if (!form.label.trim() || !Number.isFinite(amount) || amount <= 0 || !hasPaymentParty) return;
     create.mutate({
-      clientId: form.clientId ? Number(form.clientId) : null,
+      clientId: isPayment && form.association === "registered" ? Number(form.clientId) : null,
+      counterpartyName: isPayment && form.association === "external" ? form.counterpartyName.trim() : "",
       entryDate: form.entryDate,
       category: form.category,
       direction: form.direction,
@@ -68,8 +75,8 @@ function CabinetFinanceContent() {
   };
 
   return <>
-    <PageTitle eyebrow="Trésorerie de votre cabinet" title="Finances du cabinet" description="Saisissez ici les paiements et mouvements de caisse du cabinet. Une opération peut être liée à un client ou rester générale au cabinet." />
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+    <PageTitle eyebrow="Trésorerie de votre cabinet" title="Finances du cabinet" description="Enregistrez chaque paiement soit dans un dossier existant, soit au nom d’un client non enregistré. Les observations restent internes et ne sont jamais affichées dans le registre enregistré." />
+    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
       <section className="order-2 rounded-2xl border border-[#d5dfdc] bg-white p-5 lg:order-1">
         <div className="grid gap-3 sm:grid-cols-3">
           <Metric icon={ArrowDownRight} label="Encaissements" value={formatDA(incoming)} tone="teal" />
@@ -77,14 +84,14 @@ function CabinetFinanceContent() {
           <Metric icon={WalletCards} label="Solde de caisse" value={formatDA(cashBalance)} tone="navy" />
         </div>
         <div className="mt-7 overflow-x-auto rounded-xl border border-[#d5dfdc]">
-          <table className="w-full min-w-[720px] text-left text-sm">
-            <thead className="bg-[#f7faf8] text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#627785]"><tr>{["Date", "Client", "Nature", "Libellé", "Sens", "Montant", ""].map(label => <th key={label || "action"} className="px-4 py-3">{label}</th>)}</tr></thead>
+          <table className="w-full min-w-[760px] text-left text-sm">
+            <thead className="bg-[#f7faf8] text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#627785]"><tr>{["Date", "Client / tiers", "Nature", "Libellé", "Sens", "Montant", ""].map(label => <th key={label || "action"} className="px-4 py-3">{label}</th>)}</tr></thead>
             <tbody>
               {entriesQuery.isLoading ? <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-[#627785]">Préparation du registre…</td></tr> : null}
               {!entriesQuery.isLoading && !entries.length ? <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-[#627785]">Aucune opération enregistrée. Ajoutez une première ligne depuis le formulaire.</td></tr> : null}
               {entries.map(entry => <tr key={entry.id} className="border-t border-[#edf1f0]">
                 <td className="px-4 py-3 text-[#627785]">{entry.entryDate}</td>
-                <td className="px-4 py-3 font-semibold">{entry.clientId ? clientNames.get(entry.clientId) ?? "Client archivé" : "Cabinet"}</td>
+                <td className="px-4 py-3 font-semibold">{entry.clientId ? clientNames.get(entry.clientId) ?? "Client archivé" : entry.counterpartyName || "Cabinet"}</td>
                 <td className="px-4 py-3"><span className="rounded-full bg-[#edf4f1] px-2 py-1 text-xs font-bold text-[#0f766e]">{entry.category}</span></td>
                 <td className="px-4 py-3"><p className="font-bold">{entry.label}</p>{entry.reference ? <p className="mt-0.5 text-xs text-[#627785]">{entry.reference}</p> : null}</td>
                 <td className={`px-4 py-3 font-bold ${entry.direction === "Entrée" ? "text-[#0f766e]" : "text-[#a1433d]"}`}>{entry.direction}</td>
@@ -96,21 +103,27 @@ function CabinetFinanceContent() {
         </div>
       </section>
       <form onSubmit={submit} className="order-1 rounded-2xl border border-[#c8ddd5] bg-[#edf7f3] p-5 lg:order-2">
-        <div className="flex items-start gap-3"><span className="rounded-xl bg-white p-2.5 text-[#0f766e]"><Landmark size={20} /></span><div><h2 className="font-serif text-2xl text-[#102a43]">Nouvelle opération</h2><p className="mt-1 text-sm leading-5 text-[#627785]">Choisissez un client uniquement lorsque le mouvement le concerne.</p></div></div>
+        <div className="flex items-start gap-3"><span className="rounded-xl bg-white p-2.5 text-[#0f766e]"><Landmark size={20} /></span><div><h2 className="font-serif text-2xl text-[#102a43]">Nouvelle opération</h2><p className="mt-1 text-sm leading-5 text-[#627785]">Le lien vers le bon dossier ou tiers est choisi avant l’enregistrement.</p></div></div>
         <div className="mt-6 space-y-4">
-          <Field label="Client associé (facultatif)"><AppSelect value={form.clientId} onValueChange={value => setForm({ ...form, clientId: value })} options={[{ value: "", label: "Opération générale du cabinet" }, ...clients.filter(client => !client.archivedAt).map(client => ({ value: String(client.id), label: client.fullName }))]} /></Field>
-          <div className="grid grid-cols-2 gap-3"><Field label="Date"><input type="date" value={form.entryDate} onChange={event => setForm({ ...form, entryDate: event.target.value })} /></Field><Field label="Nature"><AppSelect value={form.category} onValueChange={value => setForm({ ...form, category: value as FinanceForm["category"] })} options={[{ value: "Paiement", label: "Paiement" }, { value: "Caisse", label: "Caisse" }]} /></Field></div>
+          <div className="grid grid-cols-2 gap-3"><Field label="Date"><input type="date" value={form.entryDate} onChange={event => setForm({ ...form, entryDate: event.target.value })} /></Field><Field label="Nature"><AppSelect value={form.category} onValueChange={value => setForm({ ...form, category: value as FinanceForm["category"], association: value === "Caisse" ? "registered" : form.association, clientId: value === "Caisse" ? "" : form.clientId, counterpartyName: value === "Caisse" ? "" : form.counterpartyName })} options={[{ value: "Paiement", label: "Paiement" }, { value: "Caisse", label: "Caisse" }]} /></Field></div>
+          {isPayment ? <section className="border border-[#b9d9ce] bg-white/70 p-3"><p className="ui-label">Rattachement du paiement</p><div className="mt-3 grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => setForm({ ...form, association: "registered", counterpartyName: "" })} className={`flex min-h-16 items-center gap-2 border p-3 text-left text-sm font-bold ${form.association === "registered" ? "border-[#0f766e] bg-[#eaf6f1] text-[#0f766e]" : "border-[#d5dfdc] bg-white text-[#526872]"}`}><UserRound size={16} />Dossier client</button><button type="button" onClick={() => setForm({ ...form, association: "external", clientId: "" })} className={`flex min-h-16 items-center gap-2 border p-3 text-left text-sm font-bold ${form.association === "external" ? "border-[#0f766e] bg-[#eaf6f1] text-[#0f766e]" : "border-[#d5dfdc] bg-white text-[#526872]"}`}><ReceiptText size={16} />Client non enregistré</button></div>{form.association === "registered" ? <div className="mt-3"><Field label="Dossier associé"><AppSelect value={form.clientId} onValueChange={value => setForm({ ...form, clientId: value })} options={[{ value: "", label: "Choisir un dossier" }, ...clients.filter(client => !client.archivedAt).map(client => ({ value: String(client.id), label: client.fullName }))]} /></Field></div> : <div className="mt-3"><Field label="Nom du client non enregistré"><input value={form.counterpartyName} onChange={event => setForm({ ...form, counterpartyName: event.target.value })} placeholder="Nom ou raison sociale" /></Field></div>}</section> : <p className="border-l-[3px] border-[#0f766e] bg-white/70 p-3 text-xs leading-5 text-[#526872]">Mouvement interne de caisse du cabinet : aucun dossier ni tiers externe n’est requis.</p>}
           <div className="grid grid-cols-2 gap-3"><Field label="Sens"><AppSelect value={form.direction} onValueChange={value => setForm({ ...form, direction: value as FinanceForm["direction"] })} options={[{ value: "Entrée", label: "Entrée" }, { value: "Sortie", label: "Sortie" }]} /></Field><Field label="Montant (DA)"><input type="number" min="0" step="0.01" value={form.amount} onChange={event => setForm({ ...form, amount: event.target.value })} placeholder="0,00" /></Field></div>
           <Field label="Libellé"><input value={form.label} onChange={event => setForm({ ...form, label: event.target.value })} placeholder="Ex. règlement, dépense, caisse" /></Field>
           <Field label="Référence"><input value={form.reference} onChange={event => setForm({ ...form, reference: event.target.value })} placeholder="Facultative" /></Field>
-          <Field label="Observation"><textarea value={form.note} onChange={event => setForm({ ...form, note: event.target.value })} placeholder="Précision facultative" /></Field>
+          <Field label="Observation interne"><textarea value={form.note} onChange={event => setForm({ ...form, note: event.target.value })} placeholder="Précision facultative, non affichée dans le registre" /></Field>
         </div>
-        <button disabled={create.isPending || !form.label.trim() || !form.amount} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0f766e] px-4 text-sm font-bold text-white disabled:opacity-55"><Plus size={17} />{create.isPending ? "Enregistrement…" : "Ajouter au registre"}</button>
+        <button disabled={create.isPending || !form.label.trim() || !form.amount || !hasPaymentParty} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0f766e] px-4 text-sm font-bold text-white disabled:opacity-55"><Plus size={17} />{create.isPending ? "Enregistrement…" : "Ajouter au registre"}</button>
         {create.error ? <p className="mt-3 rounded-lg bg-[#fff2ef] p-3 text-sm font-semibold text-[#a1433d]">{create.error.message}</p> : null}
       </form>
     </div>
   </>;
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="block"><span className="ui-label">{label}</span><span className="mt-2 block [&_input]:h-11 [&_input]:w-full [&_input]:rounded-none [&_input]:border [&_input]:border-[#c7d8d3] [&_input]:bg-[#fffefa] [&_input]:px-3 [&_select]:h-11 [&_select]:w-full [&_select]:rounded-none [&_select]:border [&_select]:border-[#c7d8d3] [&_select]:bg-[#fffefa] [&_select]:px-3 [&_textarea]:min-h-24 [&_textarea]:w-full [&_textarea]:rounded-none [&_textarea]:border [&_textarea]:border-[#c7d8d3] [&_textarea]:bg-[#fffefa] [&_textarea]:p-3">{children}</span></label>; }
-function Metric({ icon: Icon, label, value, tone }: { icon: typeof Landmark; label: string; value: string; tone: "teal" | "gold" | "navy" }) { const classes = { teal: "border-t-[#0b625e] bg-[#e8f4ef] text-[#0b625e]", gold: "border-t-[#d29a3e] bg-[#fff7df] text-[#795b1d]", navy: "border-t-[#182b3a] bg-[#182b3a] text-white" }; return <div className={`border-t-2 p-4 ${classes[tone]}`}><Icon size={18} /><p className="mt-4 text-[10px] font-extrabold uppercase tracking-[.08em] opacity-75">{label}</p><p className="mt-1 font-serif text-2xl">{value}</p></div>; }
+function Field({ label, children }: { label: string; children: ReactNode }) {
+  return <label className="block"><span className="ui-label">{label}</span><span className="mt-2 block [&_input]:h-11 [&_input]:w-full [&_input]:rounded-none [&_input]:border [&_input]:border-[#c7d8d3] [&_input]:bg-[#fffefa] [&_input]:px-3 [&_textarea]:min-h-24 [&_textarea]:w-full [&_textarea]:rounded-none [&_textarea]:border [&_textarea]:border-[#c7d8d3] [&_textarea]:bg-[#fffefa] [&_textarea]:p-3">{children}</span></label>;
+}
+
+function Metric({ icon: Icon, label, value, tone }: { icon: typeof Landmark; label: string; value: string; tone: "teal" | "gold" | "navy" }) {
+  const classes = { teal: "border-t-[#0b625e] bg-[#e8f4ef] text-[#0b625e]", gold: "border-t-[#d29a3e] bg-[#fff7df] text-[#795b1d]", navy: "border-t-[#182b3a] bg-[#182b3a] text-white" };
+  return <div className={`border-t-2 p-4 ${classes[tone]}`}><Icon size={18} /><p className="mt-4 text-[10px] font-extrabold uppercase tracking-[.08em] opacity-75">{label}</p><p className="mt-1 font-serif text-2xl">{value}</p></div>;
+}

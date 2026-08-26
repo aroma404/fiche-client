@@ -41,7 +41,7 @@ const caseInput = z.object({ label: z.string().min(1).max(160), caseType: z.enum
 const paymentInput = z.object({ paymentDate: z.string().min(4).max(30), label: z.string().min(1).max(180), reference: z.string().max(160).default(""), amount: z.number().finite() });
 const cashInput = z.object({ entryDate: z.string().min(4).max(30), label: z.string().min(1).max(180), direction: z.enum(["Entrée", "Sortie"]), amount: z.number().finite() });
 const financeEntryInput = z.object({ entryDate: z.string().min(4).max(30), category: z.enum(["Paiement", "Caisse"]), direction: z.enum(["Entrée", "Sortie"]), label: z.string().min(1).max(180), reference: z.string().max(160).default(""), amount: z.number().finite(), note: z.string().max(500).default("") });
-const contactInput = z.object({ label: z.string().trim().max(100).default(""), type: z.enum(["Téléphone", "E-mail", "Autre"]), value: z.string().trim().min(3, "Indiquez une coordonnée.").max(320), isPrimary: z.boolean().default(false) });
+const contactInput = z.object({ label: z.string().trim().max(100).default(""), type: z.string().trim().min(2, "Choisissez un type de contact.").max(100), value: z.string().trim().min(3, "Indiquez une coordonnée.").max(320), isPrimary: z.boolean().default(false) });
 const purgeAfterThirtyDays = () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
 export const clientBundleInput = z.object({ client: clientInput, contacts: z.array(contactInput).max(30).default([]), documents: z.array(documentInput).max(100), compliance: z.array(complianceInput).max(30), cases: z.array(caseInput).max(100).default([]), payments: z.array(paymentInput).max(500).default([]), cashEntries: z.array(cashInput).max(500).default([]), financeEntries: z.array(financeEntryInput).max(1000).default([]) });
@@ -115,13 +115,15 @@ export const clientsRouter = router({
     }),
     create: publicProcedure.input(z.object({ clientId: z.number().int().positive(), contact: contactInput })).mutation(async ({ ctx, input }) => {
       const account = await requireCurrentAccount(ctx.req); if (!(await getOwnedClient(account.id, input.clientId))) throw new Error("Client introuvable."); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
-      await db.transaction(async tx => { if (input.contact.isPrimary) await tx.update(clientContacts).set({ isPrimary: false }).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))); const inserted = await tx.insert(clientContacts).values({ clientId: input.clientId, ...input.contact }); await tx.update(clients).set({ contact: input.contact.value }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id))); return inserted; });
+      const type = await resolveProgramClientOption(db, account.id, "contactType", input.contact.type);
+      await db.transaction(async tx => { if (input.contact.isPrimary) await tx.update(clientContacts).set({ isPrimary: false }).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))); const inserted = await tx.insert(clientContacts).values({ clientId: input.clientId, ...input.contact, type: type.label }); await tx.update(clients).set({ contact: input.contact.value }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id))); return inserted; });
       return { success: true } as const;
     }),
     update: publicProcedure.input(z.object({ id: z.number().int().positive(), clientId: z.number().int().positive(), contact: contactInput })).mutation(async ({ ctx, input }) => {
       const account = await requireCurrentAccount(ctx.req); if (!(await getOwnedClient(account.id, input.clientId))) throw new Error("Client introuvable."); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
+      const type = await resolveProgramClientOption(db, account.id, "contactType", input.contact.type);
       const current = (await db.select().from(clientContacts).where(and(eq(clientContacts.id, input.id), eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))).limit(1))[0]; if (!current) throw new Error("Contact introuvable.");
-      await db.transaction(async tx => { if (input.contact.isPrimary) await tx.update(clientContacts).set({ isPrimary: false }).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))); await tx.update(clientContacts).set(input.contact).where(eq(clientContacts.id, input.id)); await tx.update(clients).set({ contact: input.contact.value }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id))); });
+      await db.transaction(async tx => { if (input.contact.isPrimary) await tx.update(clientContacts).set({ isPrimary: false }).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))); await tx.update(clientContacts).set({ ...input.contact, type: type.label }).where(eq(clientContacts.id, input.id)); await tx.update(clients).set({ contact: input.contact.value }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id))); });
       return { success: true } as const;
     }),
     archive: publicProcedure.input(z.object({ id: z.number().int().positive(), clientId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {

@@ -1,5 +1,7 @@
 /** Préchargement contrôlé des modules privés : accélère la navigation sans exposer de données ni contourner l’authentification. */
 
+import { clientFeatureRegistry, privateFeatureRegistry, type ClientFeatureDefinition, type PrivateFeatureDefinition } from "@/core/registry-index";
+
 export type CachedModule<T> = (() => Promise<T>) & { get: () => T | undefined };
 
 function cachedModule<T>(load: () => Promise<T>): CachedModule<T> {
@@ -27,18 +29,43 @@ export const loadCabinetFinancePage = cachedModule(() => import("@/pages/cabinet
 export const loadArchivesPage = cachedModule(() => import("@/pages/archives-page").then(module => ({ default: module.ArchivesPage })));
 export const loadClientPasswordVaultPage = cachedModule(() => import("@/features/clients/client-password-vault-page").then(module => ({ default: module.ClientPasswordVaultPage })));
 
+const mainFeatureLoaders: Record<PrivateFeatureDefinition["id"], CachedModule<{ default: React.ComponentType<any> }>> = {
+  dashboard: loadDashboardPage,
+  clients: loadClientsPage,
+  finances: loadCabinetFinancePage,
+  transfers: loadTransfersPage,
+  archives: loadArchivesPage,
+  settings: loadProgramSettingsPage,
+  account: loadAccountPage,
+};
+
+const featureRouteManifest = privateFeatureRegistry.map(feature => ({
+  matches: (path: string) => feature.id === "clients" ? path === feature.href : path === feature.href || path.startsWith(`${feature.href}/`),
+  loader: mainFeatureLoaders[feature.id],
+  warm: feature.prewarm,
+}));
+
+const clientFeatureLoaders: Record<ClientFeatureDefinition["slug"], CachedModule<{ default: React.ComponentType<any> }>> = {
+  fiche: loadClientFichePage,
+  documents: loadClientDocumentsPage,
+  conformite: loadClientCompliancePage,
+  paiements: loadClientPaymentsPage,
+  coffre: loadClientPasswordVaultPage,
+  impression: loadClientPrintPage,
+};
+
+const clientFeatureRouteManifest = clientFeatureRegistry.map(feature => ({
+  matches: (path: string) => new RegExp(`^/clients/\\d+/${feature.slug}(?:/|$)`).test(path),
+  loader: clientFeatureLoaders[feature.slug],
+  warm: false,
+}));
+
 /** Centre d’enregistrement des imports différés et des chemins privés autorisés. */
 export const privateRouteManifest = [
-  { matches: (path: string) => path.startsWith("/dashboard"), loader: loadDashboardPage, warm: true },
   { matches: (path: string) => path === "/clients/nouveau", loader: loadNewClientPage, warm: true },
-  { matches: (path: string) => path.includes("/coffre"), loader: loadClientPasswordVaultPage, warm: false },
+  ...clientFeatureRouteManifest,
   { matches: (path: string) => path.startsWith("/clients/"), loader: loadClientFichePage, warm: false },
-  { matches: (path: string) => path.startsWith("/clients"), loader: loadClientsPage, warm: true },
-  { matches: (path: string) => path.startsWith("/transferts"), loader: loadTransfersPage, warm: true },
-  { matches: (path: string) => path.startsWith("/finances"), loader: loadCabinetFinancePage, warm: true },
-  { matches: (path: string) => path.startsWith("/archives"), loader: loadArchivesPage, warm: true },
-  { matches: (path: string) => path.startsWith("/reglages"), loader: loadProgramSettingsPage, warm: true },
-  { matches: (path: string) => path.startsWith("/compte"), loader: loadAccountPage, warm: true },
+  ...featureRouteManifest,
 ] as const;
 
 export function getPrivateRouteLoader(path: string) {
@@ -52,7 +79,7 @@ export function preloadPrivateRoute(path: string) {
 export function prewarmCorePrivateRoutes() {
   void preloadPrivateRoute("/dashboard");
   const schedule = () => {
-    const warmPaths = ["/dashboard", "/clients/nouveau", "/clients", "/transferts", "/finances", "/archives", "/reglages", "/compte"];
+    const warmPaths = ["/clients/nouveau", "/compte", ...privateFeatureRegistry.filter(feature => feature.prewarm).map(feature => feature.href)];
     warmPaths.forEach(path => void preloadPrivateRoute(path));
   };
   if (typeof window === "undefined") return;

@@ -100,6 +100,9 @@ suite("isolation persistante A/B", () => {
     await expect(clientsRouter.createCaller(contextFor(tokenA)).saveBundle({ clientId: clientA, data: { client: { fullName: "Dossier isolé A" }, documents: [], compliance: [], cases: [], payments: [], cashEntries: [], financeEntries: [{ entryDate: "2026-08-24", category: "Caisse", direction: "Entrée", label: "Opération depuis la fiche", reference: "FICHE", amount: 80, note: "Test de propagation" }] } })).resolves.toEqual({ success: true });
     await expect(financeA.list({ clientId: clientA })).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ category: "Caisse", label: "Opération depuis la fiche", amount: "80.00" })]));
     const created = await financeA.create({ clientId: clientA, entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", label: "Règlement isolé", reference: "ITEST", amount: 1200, note: "Test nettoyé automatiquement" });
+    const external = await financeA.create({ clientId: null, counterpartyName: "Tiers de test non enregistré", entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", label: "Règlement externe", reference: "EXT", amount: 900, note: "Observation interne" });
+    await expect(financeA.create({ clientId: null, counterpartyName: "", entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", label: "Paiement invalide", reference: "", amount: 1, note: "" })).rejects.toThrow("Choisissez un dossier ou indiquez le nom");
+    await expect(financeA.list()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: external.entryId, clientId: null, counterpartyName: "Tiers de test non enregistré", label: "Règlement externe", note: "Observation interne" })]));
     await expect(financeB.list()).resolves.toEqual([]);
     await expect(financeB.create({ clientId: clientA, entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", label: "Tentative B", reference: "", amount: 1, note: "" })).rejects.toThrow("Client introuvable.");
     await expect(financeB.remove({ entryId: created.entryId })).resolves.toEqual({ success: true });
@@ -121,15 +124,23 @@ suite("isolation persistante A/B", () => {
     const settingsA = programSettingsRouter.createCaller(contextFor(tokenA)); const settingsB = programSettingsRouter.createCaller(contextFor(tokenB));
     const status = await settingsA.clientStatuses.create({ label: "Archive statut", isOperational: false }); await settingsA.clientStatuses.remove({ id: status.id });
     await expect(settingsA.clientStatuses.archived()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: status.id })]));
-    await expect(settingsB.clientStatuses.restore({ id: status.id })).resolves.toEqual({ success: true });
+    await expect(settingsB.clientStatuses.restore({ id: status.id })).rejects.toThrow("Statut archivé introuvable.");
     await expect(settingsA.clientStatuses.archived()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: status.id })]));
     await settingsA.clientStatuses.restore({ id: status.id });
 
     const option = await settingsA.clientOptions.create({ kind: "clientType", label: "Archive valeur" }); await settingsA.clientOptions.remove({ id: option.id });
     await expect(settingsA.clientOptions.archived()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: option.id })]));
-    await expect(settingsB.clientOptions.restore({ id: option.id })).resolves.toEqual({ success: true });
+    await expect(settingsB.clientOptions.restore({ id: option.id })).rejects.toThrow("Valeur archivée introuvable.");
     await expect(settingsA.clientOptions.archived()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: option.id })]));
     await settingsA.clientOptions.restore({ id: option.id });
+
+    const customContactType = await settingsA.clientOptions.create({ kind: "contactType", label: "Canal sécurisé" });
+    const customVaultCategory = await settingsA.clientOptions.create({ kind: "vaultCategory", label: "Clé API" });
+    await expect(settingsA.referenceRegistry.list()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: "contactType", mode: "administrable", scope: "compte" }), expect.objectContaining({ id: "vaultCategory", mode: "administrable", scope: "compte" })]));
+    await expect(settingsB.clientOptions.list({ kind: "contactType" })).resolves.not.toEqual(expect.arrayContaining([expect.objectContaining({ id: customContactType.id, label: "Canal sécurisé" })]));
+    await expect(contactsB.create({ clientId: importedForB, contact: { label: "Refus inter-compte", type: "Canal sécurisé", value: "0550000000", isPrimary: false } })).rejects.toThrow("valeur choisie");
+    await expect(passwordVaultRouter.createCaller(contextFor(tokenB)).create({ clientId: importedForB, category: "Clé API", platformName: "Plateforme test", password: "test-only" })).rejects.toThrow("valeur choisie");
+    await expect(settingsB.clientOptions.update({ id: customVaultCategory.id, label: "Interdit" })).rejects.toThrow("Valeur introuvable.");
   });
 
   it("persiste le numéro de contact après une nouvelle lecture du dossier", async () => {

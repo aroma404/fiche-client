@@ -116,3 +116,14 @@
 - [x] Corriger les dépassements et l’agencement responsive des écrans concernés.
 - [x] Retirer le voile sombre global de la fenêtre de protection des exports en conservant un focus léger sur la boîte de dialogue.
 - [x] Étendre Réglages du programme avec la gestion des statuts, listes client, règles fiscales, référentiel d’activité et conservation des archives du cabinet.
+- [x] Vérifier et corriger la sidebar, le menu burger et la navigation responsive sur bureau, tablette et mobile.
+- [x] Créer un Registry Pattern central pour déclarer les fonctionnalités et tous les référentiels de listes déroulantes.
+- [x] Connecter les listes administrables du programme aux formulaires, aux routes et aux validations côté serveur sans répéter les définitions.
+- [x] Ajouter la gestion rapide du catalogue Registre de commerce fourni par le cabinet dans Réglages du programme, sans ajouter de données externes.
+- [x] Renforcer la séparation modulaire et la couverture de tests des référentiels par compte.
+- [x] Placer l’explication de session de cinq minutes sous « Se souvenir de moi » dans la connexion.
+- [x] Garantir que le menu burger mobile se superpose au contenu et ne soit jamais recouvert par la page.
+- [x] Revoir les paiements pour séparer les opérations liées à un dossier et les paiements du cabinet pour un client non enregistré, sans afficher les observations dans la liste enregistrée.
+- [x] Centraliser les métadonnées des sous-routes privées et client encore déclarées hors du registre de fonctionnalités.
+- [x] Refuser explicitement toute restauration de statut ou de valeur administrative hors du compte propriétaire et couvrir les nouvelles listes par des tests d’isolation.
+- [x] Obtenir une preuve authentifiée de la navigation burger/sidebar sur bureau, tablette et mobile sans utiliser de données réelles.

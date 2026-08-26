@@ -1,17 +1,12 @@
 import { ArchiveRestore, Download, Landmark, LayoutDashboard, Settings2, Users, type LucideIcon } from "lucide-react";
 
-export type WorkspaceFeature = { href: string; label: string; sectionTitle: string; icon: LucideIcon };
+import { getPrivateFeatureForPath, privateFeatureRegistry } from "@/core/registry-index";
 
-/** Registre statique auditable des modules de l’espace privé. Aucun code externe n’est chargé à l’exécution. */
-export const workspaceFeatures: readonly WorkspaceFeature[] = [
-  { href: "/dashboard", label: "Tableau de bord", sectionTitle: "Tableau de bord", icon: LayoutDashboard },
-  { href: "/clients", label: "Dossiers clients", sectionTitle: "Dossiers clients", icon: Users },
-  { href: "/finances", label: "Finances du cabinet", sectionTitle: "Finances du cabinet", icon: Landmark },
-  { href: "/transferts", label: "Importer / exporter", sectionTitle: "Importation et exportation", icon: Download },
-  { href: "/archives", label: "Archives", sectionTitle: "Archives", icon: ArchiveRestore },
-  { href: "/reglages", label: "Réglages du programme", sectionTitle: "Réglages du programme", icon: Settings2 },
-];
+export type WorkspaceFeature = typeof privateFeatureRegistry[number];
+
+/** Projection de navigation du registre central des fonctionnalités privées. */
+export const workspaceFeatures = privateFeatureRegistry.filter(feature => feature.visibleInNavigation);
 
 export function workspaceSectionTitle(location: string) {
-  return workspaceFeatures.find(feature => location.startsWith(feature.href))?.sectionTitle ?? "Mon compte";
+  return getPrivateFeatureForPath(location)?.sectionTitle ?? "Mon compte";
 }

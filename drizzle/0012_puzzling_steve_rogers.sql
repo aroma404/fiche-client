@@ -1,0 +1,1 @@
+ALTER TABLE `cabinet_finance_entries` ADD `counterpartyName` varchar(220) DEFAULT '' NOT NULL;

@@ -1,5 +1,5 @@
 export const vaultCategories = ["Fiscal", "Bancaire", "Administration", "Réseaux sociaux", "Autre"] as const;
-export type VaultCategory = (typeof vaultCategories)[number];
+export type VaultCategory = string;
 export type VaultSearchEntry = { category: string | null; platformName: string; email: string | null; phone: string | null; username: string | null };
 
 export function filterVaultEntries<T extends VaultSearchEntry>(entries: T[], search: string, category: "Toutes" | VaultCategory) {

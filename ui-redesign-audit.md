@@ -63,3 +63,23 @@ Le nettoyage confirmé a supprimé le compte temporaire et ses données dépenda
 ## Gabarits partagés et comportement compact
 
 La revue du gabarit de l’espace de travail confirme un rail de bureau séparé et un panneau latéral mobile déclenché par un bouton dédié sous le seuil `lg`, avec fermeture automatique au changement de route. L’en-tête, les titres de page, les marges de contenu et les tables de registre reposent sur les mêmes composants partagés ; les écrans publics avaient déjà été contrôlés à 390 px, sans débordement ni action inaccessible.
+
+## Ajustements de session et navigation mobile
+
+La page Connexion a de nouveau été contrôlée à 390 px : le rappel « Sinon, la session est limitée à 5 minutes et se ferme avec le navigateur » est affiché directement sous « Se souvenir de moi », avec une hiérarchie lisible et sans débordement. Le panneau burger mobile possède désormais un contexte d’empilement isolé et un niveau supérieur au contenu et à l’en-tête ; il conserve le verrouillage du défilement, la fermeture par Échap, par voile et lors du changement de route. La session navigateur disponible au moment de la vérification était déconnectée, donc aucun dossier réel n’a été consulté.
+
+Un rechargement complet de `/connexion` affiche d’abord le squelette de transition puis le formulaire final sans erreur de rendu ni écran vide persistant. Le rappel de session et le lien de convention restent présents après ce cycle de rechargement.
+
+## Confirmation utilisateur — navigation mobile
+
+Le 26 août 2026, l’utilisateur a confirmé après essai que le problème du menu burger est résolu. Cette confirmation complète les contrôles automatisés de superposition, de fermeture par Échap, de fermeture au changement de route et de verrouillage du défilement.
+
+Une session de test authentifiée et vide a ensuite été ouverte sur `/dashboard`. Le déclenchement du burger depuis le DOM confirme un dialogue modal ouvert, `z-index: 100`, une sidebar visible dans le dialogue et le défilement du document verrouillé. La touche Échap referme ensuite le panneau et rétablit la vue du tableau de bord. Aucun dossier réel n’a été consulté ni créé.
+
+Dans la même session, le clic sur le voile ferme le dialogue et rétablit le défilement. L’ouverture du panneau puis le clic sur « Dossiers clients » mène à `/clients`, ferme automatiquement le dialogue et rétablit aussi le défilement. Ces contrôles couvrent la superposition, le voile, Échap et la fermeture au changement de route.
+
+Lors de la vérification finale de Réglages depuis la même session authentifiée, le squelette de chargement est resté visible après le chargement différé. Cette observation est traitée comme un incident de rendu à diagnostiquer avant la sauvegarde de la version.
+
+Après un redémarrage propre du serveur de développement, la même route `/reglages` se charge normalement dans la session de test. La page affiche les cinq listes administrables (formes juridiques, types de client, régimes fiscaux, types de contact et catégories d’accès), la carte de suivi de tous les référentiels, ainsi que le catalogue RC issu du fichier Excel avec 99 catégories et 2 130 activités, sans action d’ajout libre.
+
+La page Finances du cabinet a été ouverte avec le compte de test vide : le registre ne montre aucun mouvement, le formulaire propose explicitement « Dossier client » et « Client non enregistré », et l’observation est libellée comme interne et non affichée dans le registre. Une tentative de clic automatisé sur le second choix a expiré sans créer de donnée ; le basculement est vérifié par un contrôle DOM alternatif.

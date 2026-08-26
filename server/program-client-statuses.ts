@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { programClientStatuses } from "../drizzle/schema";
 import { getDb } from "./db";
 
@@ -10,14 +10,14 @@ const defaultClientStatuses = [
 ] as const;
 
 export async function listProgramClientStatuses(db: Database, accountId: number) {
-  const existing = await db.select().from(programClientStatuses).where(eq(programClientStatuses.accountId, accountId)).orderBy(asc(programClientStatuses.sortOrder), asc(programClientStatuses.label));
+  const existing = await db.select().from(programClientStatuses).where(and(eq(programClientStatuses.accountId, accountId), isNull(programClientStatuses.deletedAt))).orderBy(asc(programClientStatuses.sortOrder), asc(programClientStatuses.label));
   if (existing.length) return existing;
   try {
     await db.insert(programClientStatuses).values(defaultClientStatuses.map(status => ({ accountId, ...status })));
   } catch {
     // Une autre requête peut avoir initialisé les statuts entre les deux lectures.
   }
-  return db.select().from(programClientStatuses).where(eq(programClientStatuses.accountId, accountId)).orderBy(asc(programClientStatuses.sortOrder), asc(programClientStatuses.label));
+  return db.select().from(programClientStatuses).where(and(eq(programClientStatuses.accountId, accountId), isNull(programClientStatuses.deletedAt))).orderBy(asc(programClientStatuses.sortOrder), asc(programClientStatuses.label));
 }
 
 export async function assertProgramClientStatus(db: Database, accountId: number, status: string) {

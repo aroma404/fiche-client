@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createClientDraft, financeEntriesForBundle, isOperationalClient } from "./client-data";
+import { createClientDraft, financeEntriesForBundle, isOperationalClient, taxCenterForRegimeCode } from "./client-data";
 
 describe("règles client partagées", () => {
   it("ne compte comme actif que les statuts opérationnels non archivés", () => {
@@ -16,5 +16,15 @@ describe("règles client partagées", () => {
     expect(financeEntriesForBundle(draft)).toEqual(expect.arrayContaining([expect.objectContaining({ category: "Paiement", direction: "Entrée", amount: 100 }), expect.objectContaining({ category: "Caisse", direction: "Sortie", amount: 25 })]));
     draft.financeEntries = [{ entryDate: "2026-08-26", category: "Paiement", direction: "Entrée", label: "Registre", reference: "R1", amount: 250, note: "" }];
     expect(financeEntriesForBundle(draft)).toEqual([expect.objectContaining({ label: "Registre", amount: 250 })]);
+  });
+
+  it("applique CPI au code IFU et CDI aux autres régimes, même après personnalisation des libellés", () => {
+    expect(taxCenterForRegimeCode("ifu")).toBe("CPI");
+    expect(taxCenterForRegimeCode("real")).toBe("CDI");
+    expect(taxCenterForRegimeCode("custom-regime")).toBe("CDI");
+  });
+
+  it("ne force aucun solde initial lors de la création d’un dossier", () => {
+    expect(createClientDraft("Dossier sans solde").client.initialBalance).toBeNull();
   });
 });

@@ -82,7 +82,7 @@ export const createInitialFicheState = (): FicheState => ({
     ["livres", "Livres obligatoires", "Comptabilité"],
     ["g12", "G12", "Fiscal"],
     ["g12bis", "G12 bis", "Fiscal"],
-    ["tapp", "TAP / TFPC", "Fiscal"],
+    ["tapp", "TAPP", "Fiscal"],
     ["g50", "G50 ter", "Fiscal"],
     ["301bis", "301 bis", "Fiscal"],
     ["extrait", "Extrait de rôle", "Fiscal"],

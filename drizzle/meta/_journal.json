@@ -50,6 +50,20 @@
       "when": 1787688147367,
       "tag": "0006_mushy_rhodey",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1787750897157,
+      "tag": "0007_flashy_ken_ellis",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1787751770039,
+      "tag": "0008_brave_barracuda",
+      "breakpoints": true
     }
   ]
 }

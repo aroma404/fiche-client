@@ -2,7 +2,7 @@
 
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { accounts, cabinetFinanceEntries, clientCompliance, clientDocuments, clients, clientWorkCases, exportAudit } from "../../drizzle/schema";
+import { accounts, cabinetFinanceEntries, clientCompliance, clientContacts, clientDocuments, clients, clientWorkCases, exportAudit } from "../../drizzle/schema";
 import { requireCurrentAccount } from "../account-context";
 import { canonicalActivityLabel } from "../client-activity";
 import { canonicalFinanceEntries } from "../client-ledger";
@@ -37,9 +37,10 @@ export const transfersRouter = router({
     const createdIds = await db.transaction(async tx => {
       const ids: number[] = [];
       for (const bundle of input.clients) {
-        const created = await tx.insert(clients).values({ ...bundle.client, activity: canonicalActivityLabel(bundle.client), accountId: account.id, initialBalance: bundle.client.initialBalance.toFixed(2), observations: bundle.client.observations || null });
+        const created = await tx.insert(clients).values({ ...bundle.client, activity: canonicalActivityLabel(bundle.client), accountId: account.id, initialBalance: bundle.client.initialBalance === null ? null : bundle.client.initialBalance.toFixed(2), observations: bundle.client.observations || null });
         const clientId = Number(created[0]?.insertId);
         ids.push(clientId);
+        if (bundle.contacts.length) await tx.insert(clientContacts).values(bundle.contacts.map(item => ({ clientId, ...item })));
         if (bundle.documents.length) await tx.insert(clientDocuments).values(bundle.documents.map(item => ({ clientId, ...item })));
         if (bundle.compliance.length) await tx.insert(clientCompliance).values(bundle.compliance.map(item => ({ clientId, ...item })));
         if (bundle.cases.length) await tx.insert(clientWorkCases).values(bundle.cases.map(item => ({ clientId, ...item })));

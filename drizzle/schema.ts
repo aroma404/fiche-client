@@ -68,9 +68,11 @@ export const clients = mysqlTable("clients", {
   nin: varchar("nin", { length: 80 }).default(""),
   regime: varchar("regime", { length: 80 }).default("Régime réel"),
   taxCenter: varchar("taxCenter", { length: 20 }).default("CDI"),
-  initialBalance: decimal("initialBalance", { precision: 14, scale: 2 }).default("0.00").notNull(),
+  initialBalance: decimal("initialBalance", { precision: 14, scale: 2 }),
   observations: text("observations"),
   archivedAt: timestamp("archivedAt"),
+  deletedAt: timestamp("deletedAt"),
+  purgeAfter: timestamp("purgeAfter"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("clients_account_idx").on(table.accountId), index("clients_account_name_idx").on(table.accountId, table.fullName)]);
@@ -82,9 +84,39 @@ export const programClientStatuses = mysqlTable("program_client_statuses", {
   label: varchar("label", { length: 60 }).notNull(),
   isOperational: boolean("isOperational").default(true).notNull(),
   sortOrder: int("sortOrder").default(0).notNull(),
+  deletedAt: timestamp("deletedAt"),
+  purgeAfter: timestamp("purgeAfter"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("program_client_statuses_account_idx").on(table.accountId), uniqueIndex("program_client_statuses_account_label_unique").on(table.accountId, table.label)]);
+
+/** Valeurs administrables des listes client, isolées par cabinet et conservant un code métier stable. */
+export const programClientOptions = mysqlTable("program_client_options", {
+  id: int("id").autoincrement().primaryKey(),
+  accountId: int("accountId").notNull(),
+  kind: varchar("kind", { length: 40 }).notNull(),
+  code: varchar("code", { length: 80 }).notNull(),
+  label: varchar("label", { length: 100 }).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  deletedAt: timestamp("deletedAt"),
+  purgeAfter: timestamp("purgeAfter"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [index("program_client_options_account_kind_idx").on(table.accountId, table.kind), uniqueIndex("program_client_options_account_kind_code_unique").on(table.accountId, table.kind, table.code)]);
+
+/** Contacts administratifs du dossier. Les valeurs restent limitées au compte propriétaire du client. */
+export const clientContacts = mysqlTable("client_contacts", {
+  id: int("id").autoincrement().primaryKey(),
+  clientId: int("clientId").notNull(),
+  label: varchar("label", { length: 100 }).default(""),
+  type: varchar("type", { length: 20 }).notNull(),
+  value: varchar("value", { length: 320 }).notNull(),
+  isPrimary: boolean("isPrimary").default(false).notNull(),
+  deletedAt: timestamp("deletedAt"),
+  purgeAfter: timestamp("purgeAfter"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [index("client_contacts_client_idx").on(table.clientId)]);
 
 export const clientDocuments = mysqlTable("client_documents", {
   id: int("id").autoincrement().primaryKey(),

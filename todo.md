@@ -87,3 +87,12 @@
 - [x] Extraire et intégrer فقط تصنيفات Registre de commerce والنشاطات الواردة في ملفات Excel المرفقة، دون إضافة خيارات خارج المطلوب.
 - [x] Unifier la source de vérité des statuts client, opérations financières et indicateurs Dashboard afin qu’un client radié ne soit jamais compté comme actif.
 - [x] Vérifier de bout en bout que toute modification d’un statut, paiement ou opération se reflète identiquement dans la fiche, Finances du cabinet, exports et Dashboard.
+- [x] Retirer le compteur de l’option « Tous les clients du compte » dans le périmètre d’export.
+- [x] Optimiser le sélecteur Registre de commerce pour éviter tout gel à l’ouverture des activités.
+- [x] Appliquer automatiquement CPI pour le régime IFU et CDI pour les autres régimes fiscaux.
+- [x] Renommer TAP / TFPC en TAPP dans les interfaces et formats compatibles.
+- [x] Rendre le solde initial optionnel, ajoutable, modifiable et supprimable.
+- [x] Ajouter des contacts multiples avec liens sécurisés vers téléphone et e-mail.
+- [x] Simplifier Réglages du programme et y rendre administrables les listes client autorisées.
+- [x] Corriger la largeur et le comportement responsive des réglages pour empêcher tout dépassement d’écran.
+- [ ] Mettre les suppressions en archive pendant 30 jours puis purger automatiquement les éléments arrivés à échéance (activation après publication).

@@ -29,7 +29,7 @@ export async function downloadFichePdf(draft: ClientDraft) {
   section(pdf, 47, "Identité et activité");
   field(pdf, 12, 55, "Nom / raison sociale", draft.client.fullName); field(pdf, 108, 55, "Activité", draft.client.activity);
   field(pdf, 12, 67, "Forme juridique", draft.client.legalForm); field(pdf, 108, 67, "Type de client", draft.client.clientType);
-  field(pdf, 12, 79, "Commune", draft.client.commune); field(pdf, 108, 79, "Contact", draft.client.contact);
+  field(pdf, 12, 79, "Commune", draft.client.commune); field(pdf, 108, 79, "Contacts", draft.contacts.length ? draft.contacts.map(item => `${item.label || item.type} : ${item.value}`).join(" · ") : draft.client.contact);
 
   section(pdf, 95, "Références fiscales et juridiques");
   field(pdf, 12, 103, "NIF", draft.client.nif); field(pdf, 60, 103, "N° RC", draft.client.rc, 38); field(pdf, 108, 103, "BP", draft.client.bp); field(pdf, 156, 103, "NIN", draft.client.nin, 38);
@@ -37,7 +37,8 @@ export async function downloadFichePdf(draft: ClientDraft) {
   field(pdf, 12, 127, "Centre d’impôt", draft.client.taxCenter, 83);
 
   section(pdf, 143, "Paiements et observations");
-  const cards = [["SOLDE INITIAL", money(draft.client.initialBalance), palette.paper], ["PAIEMENTS", money(payments), [232, 246, 240] as const], ["SOLDE ESTIMÉ", money(draft.client.initialBalance - payments), [255, 248, 229] as const]];
+  const initialBalance = Number(draft.client.initialBalance ?? 0);
+  const cards = [["SOLDE INITIAL", money(initialBalance), palette.paper], ["PAIEMENTS", money(payments), [232, 246, 240] as const], ["SOLDE ESTIMÉ", money(initialBalance - payments), [255, 248, 229] as const]];
   cards.forEach(([label, value, color], index) => { const x = 12 + index * 62; pdf.setFillColor(...(color as readonly [number, number, number])); pdf.roundedRect(x, 150, 56, 19, 2, 2, "F"); pdf.setTextColor(...palette.muted); pdf.setFont("helvetica", "bold"); pdf.setFontSize(6.5); pdf.text(label as string, x + 4, 157); pdf.setTextColor(...palette.navy); pdf.setFontSize(10); pdf.text(value as string, x + 4, 164); });
   pdf.setFont("helvetica", "normal"); pdf.setFontSize(8); pdf.setTextColor(...palette.navy); pdf.text(pdf.splitTextToSize(draft.client.observations || "Aucune observation financière renseignée.", 180).slice(0, 2), 16, 178);
 

@@ -25,6 +25,7 @@ export const loadDashboardPage = cachedModule(() => import("@/pages/dashboard-pa
 export const loadTransfersPage = cachedModule(() => import("@/pages/transfers-page").then(module => ({ default: module.TransfersPage })));
 export const loadCabinetFinancePage = cachedModule(() => import("@/pages/cabinet-finance-page").then(module => ({ default: module.CabinetFinancePage })));
 export const loadArchivesPage = cachedModule(() => import("@/pages/archives-page").then(module => ({ default: module.ArchivesPage })));
+export const loadPasswordVaultPage = cachedModule(() => import("@/pages/password-vault-page").then(module => ({ default: module.PasswordVaultPage })));
 
 /** Centre d’enregistrement des imports différés et des chemins privés autorisés. */
 export const privateRouteManifest = [
@@ -35,6 +36,7 @@ export const privateRouteManifest = [
   { matches: (path: string) => path.startsWith("/transferts"), loader: loadTransfersPage, warm: true },
   { matches: (path: string) => path.startsWith("/finances"), loader: loadCabinetFinancePage, warm: true },
   { matches: (path: string) => path.startsWith("/archives"), loader: loadArchivesPage, warm: true },
+  { matches: (path: string) => path.startsWith("/coffre"), loader: loadPasswordVaultPage, warm: true },
   { matches: (path: string) => path.startsWith("/reglages"), loader: loadProgramSettingsPage, warm: true },
   { matches: (path: string) => path.startsWith("/compte"), loader: loadAccountPage, warm: true },
 ] as const;
@@ -50,7 +52,7 @@ export function preloadPrivateRoute(path: string) {
 export function prewarmCorePrivateRoutes() {
   void preloadPrivateRoute("/dashboard");
   const schedule = () => {
-    const warmPaths = ["/dashboard", "/clients/nouveau", "/clients", "/transferts", "/finances", "/archives", "/reglages", "/compte"];
+    const warmPaths = ["/dashboard", "/clients/nouveau", "/clients", "/transferts", "/finances", "/archives", "/coffre", "/reglages", "/compte"];
     warmPaths.forEach(path => void preloadPrivateRoute(path));
   };
   if (typeof window === "undefined") return;

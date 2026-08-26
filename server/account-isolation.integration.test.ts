@@ -3,13 +3,14 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import { accountSessions, accounts, cabinetFinanceEntries, clientContacts, clients, exportAudit, programClientOptions, programClientStatuses } from "../drizzle/schema";
+import { accountSessions, accounts, cabinetFinanceEntries, clientContacts, clients, exportAudit, passwordVaultEntries, programClientOptions, programClientStatuses } from "../drizzle/schema";
 import { getDb, getOwnedClient } from "./db";
 import { signAccountSession } from "./auth/session";
 import { clientsRouter } from "./routers/clients";
 import { cabinetFinanceRouter } from "./routers/cabinet-finance";
 import { transfersRouter } from "./routers/transfers";
 import { programSettingsRouter } from "./routers/program-settings";
+import { passwordVaultRouter } from "./routers/password-vault";
 
 const integrationEnabled = Boolean(process.env.DATABASE_URL);
 const suite = integrationEnabled ? describe : describe.skip;
@@ -45,6 +46,7 @@ suite("isolation persistante A/B", () => {
     const accountIds = [accountA, accountB].filter(Boolean);
     const clientIds = [clientA, clientA2, importedForB].filter(Boolean);
     if (accountIds.length) await db.delete(exportAudit).where(inArray(exportAudit.accountId, accountIds));
+    if (accountIds.length) await db.delete(passwordVaultEntries).where(inArray(passwordVaultEntries.accountId, accountIds));
     if (accountIds.length) await db.delete(cabinetFinanceEntries).where(inArray(cabinetFinanceEntries.accountId, accountIds));
     if (clientIds.length) await db.delete(clientContacts).where(inArray(clientContacts.clientId, clientIds));
     if (clientIds.length) await db.delete(clients).where(inArray(clients.id, clientIds));
@@ -128,5 +130,31 @@ suite("isolation persistante A/B", () => {
     await expect(settingsB.clientOptions.restore({ id: option.id })).resolves.toEqual({ success: true });
     await expect(settingsA.clientOptions.archived()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: option.id })]));
     await settingsA.clientOptions.restore({ id: option.id });
+  });
+
+  it("persiste le numéro de contact après une nouvelle lecture du dossier", async () => {
+    const tokenA = await signAccountSession(accountA, sessionA);
+    const contactsA = clientsRouter.createCaller(contextFor(tokenA)).contacts;
+    await contactsA.create({ clientId: clientA, contact: { label: "Contact rechargé", type: "Téléphone", value: "0550 12 34 56", isPrimary: false } });
+    const reloaded = await contactsA.list({ clientId: clientA });
+    expect(reloaded).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Contact rechargé", value: "0550 12 34 56" })]));
+    await expect(clientsRouter.createCaller(contextFor(tokenA)).get({ clientId: clientA })).resolves.toMatchObject({ client: { contact: "0550 12 34 56" } });
+  });
+
+  it("isole les secrets du coffre entre les comptes et archive seulement l’entrée détenue", async () => {
+    const tokenA = await signAccountSession(accountA, sessionA); const tokenB = await signAccountSession(accountB, sessionB);
+    const vaultA = passwordVaultRouter.createCaller(contextFor(tokenA)); const vaultB = passwordVaultRouter.createCaller(contextFor(tokenB));
+    await vaultA.create({ platformName: "Plateforme test", platformUrl: "https://exemple.test", email: "coffre@exemple.test", phone: "", username: "essai", password: "Secret de test 2026" });
+    const entry = (await vaultA.list()).find(item => item.platformName === "Plateforme test"); if (!entry) throw new Error("Entrée de coffre absente.");
+    expect(entry).not.toHaveProperty("password");
+    await expect(vaultA.reveal({ id: entry.id })).resolves.toEqual({ password: "Secret de test 2026" });
+    await expect(vaultB.list()).resolves.not.toEqual(expect.arrayContaining([expect.objectContaining({ id: entry.id })]));
+    await expect(vaultB.reveal({ id: entry.id })).rejects.toThrow("Accès introuvable.");
+    await vaultB.archive({ id: entry.id });
+    await expect(vaultA.list()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: entry.id })]));
+    await vaultA.archive({ id: entry.id });
+    await expect(vaultA.list()).resolves.not.toEqual(expect.arrayContaining([expect.objectContaining({ id: entry.id })]));
+    await vaultA.restore({ id: entry.id });
+    await expect(vaultA.list()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: entry.id })]));
   });
 });

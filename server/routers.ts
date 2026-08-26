@@ -5,8 +5,9 @@ import { accountRouter } from "./routers/account";
 import { cabinetFinanceRouter } from "./routers/cabinet-finance";
 import { clientsRouter } from "./routers/clients";
 import { programSettingsRouter } from "./routers/program-settings";
+import { passwordVaultRouter } from "./routers/password-vault";
 import { transfersRouter } from "./routers/transfers";
 
-export const appRouter = router({ system: systemRouter, account: accountRouter, clients: clientsRouter, cabinetFinance: cabinetFinanceRouter, transfers: transfersRouter, programSettings: programSettingsRouter });
+export const appRouter = router({ system: systemRouter, account: accountRouter, clients: clientsRouter, cabinetFinance: cabinetFinanceRouter, transfers: transfersRouter, programSettings: programSettingsRouter, passwordVault: passwordVaultRouter });
 
 export type AppRouter = typeof appRouter;

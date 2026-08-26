@@ -1,0 +1,6 @@
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+import { ENV } from "./_core/env";
+
+function key() { if (!ENV.cookieSecret) throw new Error("La clé de chiffrement du coffre est indisponible."); return createHash("sha256").update(`${ENV.cookieSecret}:fiche-client-vault:v1`).digest(); }
+export function encryptVaultPassword(accountId: number, value: string) { const iv = randomBytes(12); const cipher = createCipheriv("aes-256-gcm", key(), iv); cipher.setAAD(Buffer.from(String(accountId))); const ciphertext = Buffer.concat([cipher.update(value, "utf8"), cipher.final()]); return { encryptedPassword: ciphertext.toString("base64"), encryptionIv: iv.toString("base64"), encryptionTag: cipher.getAuthTag().toString("base64") }; }
+export function decryptVaultPassword(accountId: number, value: { encryptedPassword: string; encryptionIv: string; encryptionTag: string }) { const decipher = createDecipheriv("aes-256-gcm", key(), Buffer.from(value.encryptionIv, "base64")); decipher.setAAD(Buffer.from(String(accountId))); decipher.setAuthTag(Buffer.from(value.encryptionTag, "base64")); return Buffer.concat([decipher.update(Buffer.from(value.encryptedPassword, "base64")), decipher.final()]).toString("utf8"); }

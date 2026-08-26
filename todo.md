@@ -98,6 +98,11 @@
 - [x] Archiver 30 jours les dossiers clients, contacts, statuts et valeurs administratives, avec restauration et gestionnaire de purge sécurisé prêt à être activé après publication.
 - [x] Retirer l’étape 2 « Périmètre de l’export » en conservant uniquement les étapes 1 et 3.
 - [x] Supprimer entièrement le choix « Tous les clients du compte » et faire passer la sélection manuelle à l’étape 2.
+- [x] Ajouter un coffre de mots de passe isolé par compte : plateforme, lien, e-mail, téléphone, identifiant, mot de passe, affichage, copie et modification.
+- [x] Ajouter un accès clair vers le coffre de mots de passe dans la navigation après enregistrement.
+- [x] Corriger la persistance des coordonnées de contact après rechargement et ajouter un lien WhatsApp algérien qui transforme 0XXXXXXXXX en 213XXXXXXXXX.
+- [x] Refaire la page Archives avec les mêmes composants, espacements et hiérarchie que le design system du reste de l’application.
 - [x] Déplacer la gestion des contacts dans un bloc autonome de la fiche et supprimer la présentation « Contact principal » confuse.
 - [x] Rendre le centre d’impôt modifiable manuellement et supprimer le texte explicatif de calcul automatique.
 - [x] Créer une page Archives des dossiers clients supprimés, avec échéance des 30 jours et restauration des dossiers récupérables.
+- [x] Ajouter un lien e-mail direct dans les contacts pour ouvrir immédiatement un nouveau message au destinataire.

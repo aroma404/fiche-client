@@ -104,8 +104,10 @@ export const clientsRouter = router({
 
   contacts: router({
     list: publicProcedure.input(z.object({ clientId: z.number().int().positive() })).query(async ({ ctx, input }) => {
-      const account = await requireCurrentAccount(ctx.req); if (!(await getOwnedClient(account.id, input.clientId))) throw new Error("Client introuvable."); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
-      return db.select().from(clientContacts).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt)));
+      const account = await requireCurrentAccount(ctx.req); const owned = await getOwnedClient(account.id, input.clientId); if (!owned) throw new Error("Client introuvable."); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
+      const entries = await db.select().from(clientContacts).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt)));
+      if (!entries.length && owned.contact?.trim()) { await db.insert(clientContacts).values({ clientId: input.clientId, label: "Contact", type: owned.contact.includes("@") ? "E-mail" : "Téléphone", value: owned.contact.trim(), isPrimary: false }); return db.select().from(clientContacts).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))); }
+      return entries;
     }),
     archived: publicProcedure.query(async ({ ctx }) => {
       const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
@@ -113,13 +115,13 @@ export const clientsRouter = router({
     }),
     create: publicProcedure.input(z.object({ clientId: z.number().int().positive(), contact: contactInput })).mutation(async ({ ctx, input }) => {
       const account = await requireCurrentAccount(ctx.req); if (!(await getOwnedClient(account.id, input.clientId))) throw new Error("Client introuvable."); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
-      await db.transaction(async tx => { if (input.contact.isPrimary) await tx.update(clientContacts).set({ isPrimary: false }).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))); const inserted = await tx.insert(clientContacts).values({ clientId: input.clientId, ...input.contact }); if (input.contact.isPrimary) await tx.update(clients).set({ contact: input.contact.value }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id))); return inserted; });
+      await db.transaction(async tx => { if (input.contact.isPrimary) await tx.update(clientContacts).set({ isPrimary: false }).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))); const inserted = await tx.insert(clientContacts).values({ clientId: input.clientId, ...input.contact }); await tx.update(clients).set({ contact: input.contact.value }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id))); return inserted; });
       return { success: true } as const;
     }),
     update: publicProcedure.input(z.object({ id: z.number().int().positive(), clientId: z.number().int().positive(), contact: contactInput })).mutation(async ({ ctx, input }) => {
       const account = await requireCurrentAccount(ctx.req); if (!(await getOwnedClient(account.id, input.clientId))) throw new Error("Client introuvable."); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
       const current = (await db.select().from(clientContacts).where(and(eq(clientContacts.id, input.id), eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))).limit(1))[0]; if (!current) throw new Error("Contact introuvable.");
-      await db.transaction(async tx => { if (input.contact.isPrimary) await tx.update(clientContacts).set({ isPrimary: false }).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))); await tx.update(clientContacts).set(input.contact).where(eq(clientContacts.id, input.id)); if (input.contact.isPrimary) await tx.update(clients).set({ contact: input.contact.value }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id))); });
+      await db.transaction(async tx => { if (input.contact.isPrimary) await tx.update(clientContacts).set({ isPrimary: false }).where(and(eq(clientContacts.clientId, input.clientId), isNull(clientContacts.deletedAt))); await tx.update(clientContacts).set(input.contact).where(eq(clientContacts.id, input.id)); await tx.update(clients).set({ contact: input.contact.value }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id))); });
       return { success: true } as const;
     }),
     archive: publicProcedure.input(z.object({ id: z.number().int().positive(), clientId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {

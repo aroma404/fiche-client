@@ -52,6 +52,7 @@ export const passwordVaultEntries = mysqlTable("password_vault_entries", {
   id: int("id").autoincrement().primaryKey(),
   accountId: int("accountId").notNull(),
   clientId: int("clientId"),
+  category: varchar("category", { length: 60 }).default("Autre").notNull(),
   platformName: varchar("platformName", { length: 180 }).notNull(),
   platformUrl: varchar("platformUrl", { length: 1200 }).default(""),
   email: varchar("email", { length: 320 }).default(""),

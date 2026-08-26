@@ -144,9 +144,10 @@ suite("isolation persistante A/B", () => {
   it("isole les secrets du coffre entre les comptes et les dossiers, puis archive seulement l’entrée détenue", async () => {
     const tokenA = await signAccountSession(accountA, sessionA); const tokenB = await signAccountSession(accountB, sessionB);
     const vaultA = passwordVaultRouter.createCaller(contextFor(tokenA)); const vaultB = passwordVaultRouter.createCaller(contextFor(tokenB));
-    await vaultA.create({ clientId: clientA, platformName: "Plateforme test", platformUrl: "https://exemple.test", email: "coffre@exemple.test", phone: "", username: "essai", password: "Secret de test 2026" });
+    await vaultA.create({ clientId: clientA, category: "Fiscal", platformName: "Plateforme test", platformUrl: "https://exemple.test", email: "coffre@exemple.test", phone: "", username: "essai", password: "Secret de test 2026" });
     const entry = (await vaultA.list({ clientId: clientA })).find(item => item.platformName === "Plateforme test"); if (!entry) throw new Error("Entrée de coffre absente.");
     expect(entry).not.toHaveProperty("password");
+    expect(entry).toMatchObject({ category: "Fiscal" });
     await expect(vaultA.reveal({ id: entry.id, clientId: clientA })).resolves.toEqual({ password: "Secret de test 2026" });
     await expect(vaultA.list({ clientId: clientA2 })).resolves.not.toEqual(expect.arrayContaining([expect.objectContaining({ id: entry.id })]));
     await expect(vaultA.reveal({ id: entry.id, clientId: clientA2 })).rejects.toThrow("Accès introuvable.");

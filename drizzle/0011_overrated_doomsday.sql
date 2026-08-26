@@ -1,0 +1,1 @@
+ALTER TABLE `password_vault_entries` ADD `category` varchar(60) DEFAULT 'Autre' NOT NULL;

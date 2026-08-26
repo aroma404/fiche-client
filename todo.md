@@ -107,3 +107,5 @@
 - [x] Créer une page Archives des dossiers clients supprimés, avec échéance des 30 jours et restauration des dossiers récupérables.
 - [x] Ajouter un lien e-mail direct dans les contacts pour ouvrir immédiatement un nouveau message au destinataire.
 - [x] Rattacher chaque accès de coffre à un dossier client précis et afficher sa gestion uniquement dans la fiche de ce client.
+- [x] Ajouter une catégorie organisée à chaque accès client, dont Fiscal et Bancaire.
+- [x] Ajouter une recherche et un filtre par catégorie dans l’onglet Accès du client.

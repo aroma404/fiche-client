@@ -2,6 +2,7 @@ import { and, count, eq, isNull, sql } from "drizzle-orm";
 import { cabinetFinanceEntries, clientContacts, clientDocuments, clients, passwordVaultEntries, programClientOptions, programClientStatuses } from "../drizzle/schema";
 import { programReferenceRegistry, protectedReferenceChoices, type AccountOptionKind, type ProgramReferenceId } from "../shared/reference-registry";
 import { registreCommerceActivities, registreCommerceFamilies } from "../shared/registre-commerce-activities";
+import { getRcCatalogueSummary } from "./program-rc-catalogue";
 
 export async function countProgramStatusUsage(db: any, accountId: number, label: string) {
   const [result] = await db.select({ value: count() }).from(clients).where(and(eq(clients.accountId, accountId), eq(clients.status, label), isNull(clients.deletedAt)));
@@ -68,7 +69,13 @@ export async function getProgramReferenceSummary(db: any, accountId: number) {
       const [result] = await db.select({ value: count() }).from(programClientOptions).where(and(eq(programClientOptions.accountId, accountId), eq(programClientOptions.kind, reference.optionKind), isNull(programClientOptions.deletedAt)));
       valueCount = Number(result?.value ?? 0);
     }
+    let catalogueFamilies: number | undefined = reference.id === "registreCommerce" ? registreCommerceFamilies.length : undefined;
+    if (reference.id === "registreCommerce") {
+      const catalogue = await getRcCatalogueSummary(db, accountId);
+      valueCount = catalogue.activityCount;
+      catalogueFamilies = catalogue.familyCount;
+    }
     const usageCount = await countUsageForReference(db, accountId, reference.id);
-    return { ...reference, valueCount, usageCount, catalogueFamilies: reference.id === "registreCommerce" ? registreCommerceFamilies.length : undefined };
+    return { ...reference, valueCount, usageCount, catalogueFamilies };
   }));
 }

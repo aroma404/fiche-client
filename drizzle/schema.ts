@@ -126,6 +126,17 @@ export const programClientOptions = mysqlTable("program_client_options", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 }, table => [index("program_client_options_account_kind_idx").on(table.accountId, table.kind), uniqueIndex("program_client_options_account_kind_code_unique").on(table.accountId, table.kind, table.code), index("program_client_options_account_kind_deleted_sort_idx").on(table.accountId, table.kind, table.deletedAt, table.sortOrder)]);
 
+/** Catalogue RC personnel : il est exclusivement alimenté par une importation Excel contrôlée du cabinet. */
+export const programRcCatalogueEntries = mysqlTable("program_rc_catalogue_entries", {
+  id: int("id").autoincrement().primaryKey(),
+  accountId: int("accountId").notNull(),
+  familyCode: varchar("familyCode", { length: 10 }).notNull(),
+  activityCode: varchar("activityCode", { length: 16 }).notNull(),
+  label: varchar("label", { length: 320 }).notNull(),
+  sourceFilename: varchar("sourceFilename", { length: 255 }).notNull(),
+  importedAt: timestamp("importedAt").defaultNow().notNull(),
+}, table => [uniqueIndex("program_rc_catalogue_account_activity_unique").on(table.accountId, table.activityCode), index("program_rc_catalogue_account_family_idx").on(table.accountId, table.familyCode)]);
+
 /** Contacts administratifs du dossier. Les valeurs restent limitées au compte propriétaire du client. */
 export const clientContacts = mysqlTable("client_contacts", {
   id: int("id").autoincrement().primaryKey(),

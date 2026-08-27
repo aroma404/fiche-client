@@ -83,3 +83,11 @@ Lors de la vérification finale de Réglages depuis la même session authentifi�
 Après un redémarrage propre du serveur de développement, la même route `/reglages` se charge normalement dans la session de test. La page affiche les cinq listes administrables (formes juridiques, types de client, régimes fiscaux, types de contact et catégories d’accès), la carte de suivi de tous les référentiels, ainsi que le catalogue RC issu du fichier Excel avec 99 catégories et 2 130 activités, sans action d’ajout libre.
 
 La page Finances du cabinet a été ouverte avec le compte de test vide : le registre ne montre aucun mouvement, le formulaire propose explicitement « Dossier client » et « Client non enregistré », et l’observation est libellée comme interne et non affichée dans le registre. Une tentative de clic automatisé sur le second choix a expiré sans créer de donnée ; le basculement est vérifié par un contrôle DOM alternatif.
+
+## Réglages opérationnels — contrôle initial
+
+Le 27 août 2026, la session de contrôle authentifiée a confirmé que Réglages du programme n’apparaît plus dans le rail principal. Il est accessible par la carte profil, où le bandeau horizontal « Mon compte / Réglages du programme » est affiché, suivi des onglets Dossiers, Listes du cabinet, Registre de commerce et Archives. Le premier essai de clic automatisé sur l’onglet RC a expiré sans modification de données ; un contrôle alternatif reste à réaliser.
+
+Le contrôle alternatif par interaction DOM a ouvert l’onglet Registre de commerce. Le rendu affiche les compteurs du catalogue de référence, la recherche de catégories, la source active et les actions « Choisir le fichier Excel ou CSV », « Ajouter / mettre à jour », « Remplacer complètement » et « Réinitialiser ». Aucun fichier ni donnée n’a été envoyé pendant ce contrôle.
+
+Après redémarrage du serveur, la route Réglages se charge normalement dans la session authentifiée. Les statuts et les trois listes liées aux dossiers sont bien éditables dans l’onglet Dossiers, tandis que le rail principal ne contient pas de lien Réglages. Le passage programmatique vers Registre de commerce est déclenché sans import ni écriture ; l’affichage final du panneau est contrôlé séparément après le cycle de rendu React.

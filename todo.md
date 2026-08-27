@@ -141,3 +141,9 @@
 - [x] Vérifier la persistance, les liens d’action et le responsive du nouveau panneau Contacts.
 - [x] Synchroniser le journal Git complet et tous les changements validés avec le dépôt GitHub connecté.
 - [x] Raccourcir la description du registre client afin qu’elle tienne sur une seule ligne.
+- [x] Déplacer l’accès visible à Réglages du programme depuis la navigation vers la carte profil située en bas.
+- [x] Ajouter une navigation horizontale interne aux réglages, cohérente avec les onglets de la fiche client.
+- [x] Remplacer les cartes descriptives et le « Cadre du programme » par des outils de gestion concrets des référentiels.
+- [x] Redéfinir « Carte des listes du programme » avec un intitulé clair et des actions de gestion réelles.
+- [x] Ajouter un parcours contrôlé permettant de mettre à jour le catalogue RC uniquement à partir d’un fichier Excel autorisé.
+- [x] Vérifier les réglages reconstruits, puis les synchroniser automatiquement avec GitHub.

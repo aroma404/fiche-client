@@ -6,6 +6,7 @@ import { getDb } from "../db";
 import { listProgramClientStatuses, programClientStatusScope } from "../program-client-statuses";
 import { clientColumnForOption, listProgramClientOptions, programOptionKinds, type ProgramOptionKind } from "../program-client-options";
 import { countProgramOptionUsage, countProgramStatusUsage, getProgramReferenceSummary } from "../program-reference-usage";
+import { getRcCatalogueActivities, getRcCatalogueFamilies, getRcCatalogueSummary, mergeRcCatalogueFromExcel, replaceRcCatalogueFromExcel, resetRcCatalogueToReference } from "../program-rc-catalogue";
 import { publicProcedure, router } from "../_core/trpc";
 
 const statusLabel = z.string().trim().min(2, "Le statut doit comporter au moins deux caractères.").max(60, "Le statut est trop long.");
@@ -118,5 +119,13 @@ export const programSettingsRouter = router({
       if (!db) throw new Error("La base de données est indisponible.");
       return getProgramReferenceSummary(db, account.id);
     }),
+  }),
+  rcCatalogue: router({
+    summary: publicProcedure.query(async ({ ctx }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return getRcCatalogueSummary(db, account.id); }),
+    families: publicProcedure.query(async ({ ctx }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return getRcCatalogueFamilies(db, account.id); }),
+    activities: publicProcedure.input(z.object({ familyCode: z.string().regex(/^\d{3}$/, "Choisissez une catégorie RC valide.") })).query(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return getRcCatalogueActivities(db, account.id, input.familyCode); }),
+    replaceFromExcel: publicProcedure.input(z.object({ sourceFilename: z.string().min(5).max(255), entries: z.array(z.object({ code: z.string(), label: z.string() })).min(1).max(10_000) })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return replaceRcCatalogueFromExcel(db, account.id, input.sourceFilename, input.entries); }),
+    mergeFromExcel: publicProcedure.input(z.object({ sourceFilename: z.string().min(5).max(255), entries: z.array(z.object({ code: z.string(), label: z.string() })).min(1).max(10_000) })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return mergeRcCatalogueFromExcel(db, account.id, input.sourceFilename, input.entries); }),
+    resetToReference: publicProcedure.mutation(async ({ ctx }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return resetRcCatalogueToReference(db, account.id); }),
   }),
 });

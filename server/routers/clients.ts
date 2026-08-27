@@ -3,11 +3,11 @@
 import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { cabinetFinanceEntries, clientCashEntries, clientContacts, clientDocuments, clientPayments, clients, passwordVaultEntries } from "../../drizzle/schema";
-import { isRegistreCommerceActivity, registreCommerceActivities } from "../../shared/registre-commerce-activities";
 import { getCurrentAccount, requireCurrentAccount } from "../account-context";
 import { canonicalActivityLabel } from "../client-activity";
 import { canonicalFinanceEntries } from "../client-ledger";
 import { resolveProgramClientOption } from "../program-client-options";
+import { resolveRcActivityForAccount } from "../program-rc-catalogue";
 import { assertProgramClientStatus } from "../program-client-statuses";
 import { getClientBundle, getDb, getOwnedClient } from "../db";
 import { publicProcedure, router } from "../_core/trpc";
@@ -30,7 +30,7 @@ const clientInput = z.object({
   initialBalance: z.number().finite().nullable().optional().default(null), observations: z.string().max(8000).default(""),
 }).superRefine((value, ctx) => {
   if (value.activityKind === "Auto-entrepreneur" && !value.autoEntrepreneurActivity) ctx.addIssue({ code: "custom", path: ["autoEntrepreneurActivity"], message: "Choisissez Micro-importation ou Prestation de services." });
-  if (value.activityKind === "Registre de commerce" && !isRegistreCommerceActivity(value.rcActivityFamily, value.rcActivityCode)) ctx.addIssue({ code: "custom", path: ["rcActivityCode"], message: "Choisissez une activité valide de la nomenclature fournie." });
+  if (value.activityKind === "Registre de commerce" && (!/^\d{3}$/.test(value.rcActivityFamily) || !/^\d{6}$/.test(value.rcActivityCode))) ctx.addIssue({ code: "custom", path: ["rcActivityCode"], message: "Choisissez une activité valide de la nomenclature fournie." });
 });
 
 const documentInput = z.object({ label: z.string().min(1).max(120), category: z.string().max(100).default("Fiscal"), status: documentStatus, note: z.string().max(500).default("") });
@@ -66,9 +66,9 @@ export const clientsRouter = router({
     const db = await getDb();
     if (!db) throw new Error("La base de données est indisponible.");
     await assertProgramClientStatus(db, account.id, input.status);
-    const [legalFormOption, clientTypeOption, regimeOption] = await Promise.all([resolveProgramClientOption(db, account.id, "legalForm", input.legalForm), resolveProgramClientOption(db, account.id, "clientType", input.clientType), resolveProgramClientOption(db, account.id, "regime", input.regime)]);
+    const [legalFormOption, clientTypeOption, regimeOption, rcActivity] = await Promise.all([resolveProgramClientOption(db, account.id, "legalForm", input.legalForm), resolveProgramClientOption(db, account.id, "clientType", input.clientType), resolveProgramClientOption(db, account.id, "regime", input.regime), input.activityKind === "Registre de commerce" ? resolveRcActivityForAccount(db, account.id, input.rcActivityFamily, input.rcActivityCode) : Promise.resolve(undefined)]);
     return db.transaction(async tx => {
-      const inserted = await tx.insert(clients).values({ ...input, legalForm: legalFormOption.label, clientType: clientTypeOption.label, regime: regimeOption.label, taxCenter: input.taxCenter, activity: canonicalActivityLabel(input), accountId: account.id, initialBalance: input.initialBalance === null ? null : input.initialBalance.toFixed(2), observations: input.observations || null });
+      const inserted = await tx.insert(clients).values({ ...input, legalForm: legalFormOption.label, clientType: clientTypeOption.label, regime: regimeOption.label, taxCenter: input.taxCenter, activity: canonicalActivityLabel(input, rcActivity?.label), accountId: account.id, initialBalance: input.initialBalance === null ? null : input.initialBalance.toFixed(2), observations: input.observations || null });
       const clientId = Number(inserted[0]?.insertId);
       if (input.contact.trim()) await tx.insert(clientContacts).values({ clientId, label: "Contact", type: input.contact.includes("@") ? "E-mail" : "Téléphone", value: input.contact.trim(), isPrimary: false });
       await tx.insert(clientDocuments).values(DEFAULT_DOCUMENTS.map(([label, category]) => ({ clientId, label, category, status: "À demander" as const, note: "" })));
@@ -82,9 +82,9 @@ export const clientsRouter = router({
     const db = await getDb();
     if (!db) throw new Error("La base de données est indisponible.");
     await assertProgramClientStatus(db, account.id, input.data.client.status);
-    const [legalFormOption, clientTypeOption, regimeOption] = await Promise.all([resolveProgramClientOption(db, account.id, "legalForm", input.data.client.legalForm), resolveProgramClientOption(db, account.id, "clientType", input.data.client.clientType), resolveProgramClientOption(db, account.id, "regime", input.data.client.regime)]);
+    const [legalFormOption, clientTypeOption, regimeOption, rcActivity] = await Promise.all([resolveProgramClientOption(db, account.id, "legalForm", input.data.client.legalForm), resolveProgramClientOption(db, account.id, "clientType", input.data.client.clientType), resolveProgramClientOption(db, account.id, "regime", input.data.client.regime), input.data.client.activityKind === "Registre de commerce" ? resolveRcActivityForAccount(db, account.id, input.data.client.rcActivityFamily, input.data.client.rcActivityCode) : Promise.resolve(undefined)]);
     await db.transaction(async tx => {
-      await tx.update(clients).set({ ...input.data.client, legalForm: legalFormOption.label, clientType: clientTypeOption.label, regime: regimeOption.label, taxCenter: input.data.client.taxCenter, activity: canonicalActivityLabel(input.data.client), initialBalance: input.data.client.initialBalance === null ? null : input.data.client.initialBalance.toFixed(2), observations: input.data.client.observations || null }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id)));
+      await tx.update(clients).set({ ...input.data.client, legalForm: legalFormOption.label, clientType: clientTypeOption.label, regime: regimeOption.label, taxCenter: input.data.client.taxCenter, activity: canonicalActivityLabel(input.data.client, rcActivity?.label), initialBalance: input.data.client.initialBalance === null ? null : input.data.client.initialBalance.toFixed(2), observations: input.data.client.observations || null }).where(and(eq(clients.id, input.clientId), eq(clients.accountId, account.id)));
       await Promise.all([tx.delete(clientDocuments).where(eq(clientDocuments.clientId, input.clientId)), tx.delete(clientPayments).where(eq(clientPayments.clientId, input.clientId)), tx.delete(clientCashEntries).where(eq(clientCashEntries.clientId, input.clientId)), tx.delete(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.clientId, input.clientId), eq(cabinetFinanceEntries.accountId, account.id)))]);
       if (input.data.documents.length) await tx.insert(clientDocuments).values(input.data.documents.map(item => ({ clientId: input.clientId, ...item })));
       const financeEntries = canonicalFinanceEntries(input.data);

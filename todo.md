@@ -157,4 +157,4 @@
 - [x] Ajouter la suppression archivée du client, sans suppression définitive avant l’échéance de 30 jours.
 - [x] Permettre la modification des paiements, les relier à un document du même dossier et renommer le tiers externe.
 - [x] Ajouter les indicateurs jour/mois/année des dossiers les plus traités et des meilleurs payeurs.
-- [ ] Valider migrations, isolation, imports, fichiers, paiements, interface et synchroniser automatiquement avec GitHub.
+- [x] Valider migrations, isolation, imports, fichiers, paiements, interface et synchroniser automatiquement avec GitHub.

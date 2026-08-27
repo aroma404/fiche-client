@@ -116,16 +116,14 @@ export async function getClientBundle(accountId: number, clientId: number) {
   if (!db) throw new Error("La base de données est indisponible.");
   const client = await getOwnedClient(accountId, clientId);
   if (!client) return null;
-  const [documents, compliance, cases, payments, cashEntries, financeEntries, contacts] = await Promise.all([
+  const [documents, payments, cashEntries, financeEntries, contacts] = await Promise.all([
     db.select().from(clientDocuments).where(eq(clientDocuments.clientId, clientId)),
-    db.select().from(clientCompliance).where(eq(clientCompliance.clientId, clientId)),
-    db.select().from(clientWorkCases).where(eq(clientWorkCases.clientId, clientId)),
     db.select().from(clientPayments).where(eq(clientPayments.clientId, clientId)),
     db.select().from(clientCashEntries).where(eq(clientCashEntries.clientId, clientId)),
     db.select().from(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.clientId, clientId), eq(cabinetFinanceEntries.accountId, accountId))),
     db.select().from(clientContacts).where(and(eq(clientContacts.clientId, clientId), isNull(clientContacts.deletedAt))),
   ]);
-  return { client, documents, compliance, cases, payments, cashEntries, financeEntries, contacts };
+  return { client, documents, payments, cashEntries, financeEntries, contacts };
 }
 
 export async function getClientBundles(accountId: number, clientIds?: number[]) {

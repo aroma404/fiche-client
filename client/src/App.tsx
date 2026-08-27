@@ -9,7 +9,7 @@ import { WorkspaceLayout } from "./components/workspace-layout";
 import { PrivateWorkspaceSkeleton } from "./components/private-workspace-skeleton";
 import { LoginPage, LandingPage, RegisterPage } from "./pages/auth-pages";
 import { UsageConventionPage } from "./pages/usage-convention-page";
-import { type CachedModule, loadAccountPage, loadArchivesPage, loadCabinetFinancePage, loadClientCompliancePage, loadClientDocumentsPage, loadClientFichePage, loadClientPasswordVaultPage, loadClientPaymentsPage, loadClientPrintPage, loadClientsPage, loadDashboardPage, loadNewClientPage, loadProgramSettingsPage, loadTransfersPage } from "./routes/private-route-preload";
+import { type CachedModule, loadAccountPage, loadArchivesPage, loadCabinetFinancePage, loadClientDocumentsPage, loadClientFichePage, loadClientPasswordVaultPage, loadClientPaymentsPage, loadClientPrintPage, loadClientsPage, loadDashboardPage, loadNewClientPage, loadProgramSettingsPage, loadTransfersPage } from "./routes/private-route-preload";
 
 function preloadedRoute<Props extends object>(loader: CachedModule<{ default: ComponentType<Props> }>) {
   return function PreloadedRoute(props: Props) {
@@ -26,7 +26,6 @@ const NewClientPage = preloadedRoute(loadNewClientPage);
 const ClientsPage = preloadedRoute(loadClientsPage);
 const ClientFichePage = preloadedRoute(loadClientFichePage);
 const ClientDocumentsPage = preloadedRoute(loadClientDocumentsPage);
-const ClientCompliancePage = preloadedRoute(loadClientCompliancePage);
 const ClientPaymentsPage = preloadedRoute(loadClientPaymentsPage);
 const ClientPrintPage = preloadedRoute(loadClientPrintPage);
 const DashboardPage = preloadedRoute(loadDashboardPage);
@@ -54,7 +53,7 @@ function Router() {
     <Route path="/clients" component={ClientsPage} />
     <Route path="/clients/:clientId/fiche">{params => <ClientRoute clientId={Number(params.clientId)}><ClientFichePage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/documents">{params => <ClientRoute clientId={Number(params.clientId)}><ClientDocumentsPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
-    <Route path="/clients/:clientId/conformite">{params => <ClientRoute clientId={Number(params.clientId)}><ClientCompliancePage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
+    <Route path="/clients/:clientId/conformite">{params => <ClientRoute clientId={Number(params.clientId)}><ClientFichePage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/paiements">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPaymentsPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/coffre">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPasswordVaultPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>
     <Route path="/clients/:clientId/impression">{params => <ClientRoute clientId={Number(params.clientId)}><ClientPrintPage clientId={Number(params.clientId)} /></ClientRoute>}</Route>

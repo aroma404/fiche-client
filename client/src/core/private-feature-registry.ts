@@ -11,7 +11,7 @@ export type PrivateFeatureDefinition = {
 };
 
 export type ClientFeatureDefinition = {
-  slug: "fiche" | "documents" | "conformite" | "paiements" | "coffre" | "impression";
+  slug: "fiche" | "documents" | "paiements" | "coffre" | "impression";
   label: string;
 };
 
@@ -30,7 +30,6 @@ export const privateFeatureRegistry: readonly PrivateFeatureDefinition[] = [
 export const clientFeatureRegistry: readonly ClientFeatureDefinition[] = [
   { slug: "fiche", label: "Fiche" },
   { slug: "documents", label: "Documents" },
-  { slug: "conformite", label: "Conformité" },
   { slug: "paiements", label: "Paiements" },
   { slug: "coffre", label: "Accès" },
   { slug: "impression", label: "Impression" },

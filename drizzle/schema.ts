@@ -88,6 +88,8 @@ export const clients = mysqlTable("clients", {
   nin: varchar("nin", { length: 80 }).default(""),
   regime: varchar("regime", { length: 80 }).default("Régime réel"),
   taxCenter: varchar("taxCenter", { length: 20 }).default("CDI"),
+  cnasAffiliated: boolean("cnasAffiliated").default(false).notNull(),
+  casnosAffiliated: boolean("casnosAffiliated").default(false).notNull(),
   initialBalance: decimal("initialBalance", { precision: 14, scale: 2 }),
   observations: text("observations"),
   archivedAt: timestamp("archivedAt"),

@@ -1,9 +1,9 @@
 /** Intégration DB : deux comptes distincts ne peuvent jamais partager un dossier, même via import/export. */
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import { accountSessions, accounts, cabinetFinanceEntries, clientContacts, clients, exportAudit, passwordVaultEntries, programClientOptions, programClientStatuses } from "../drizzle/schema";
+import { accountSessions, accounts, cabinetFinanceEntries, clientCompliance, clientContacts, clientWorkCases, clients, exportAudit, passwordVaultEntries, programClientOptions, programClientStatuses } from "../drizzle/schema";
 import { getDb, getOwnedClient } from "./db";
 import { signAccountSession } from "./auth/session";
 import { clientsRouter } from "./routers/clients";
@@ -35,7 +35,7 @@ suite("isolation persistante A/B", () => {
     accountA = Number(createdA[0].insertId); accountB = Number(createdB[0].insertId);
     await db.insert(accountSessions).values([{ id: sessionA, accountId: accountA, expiresAt: new Date(Date.now() + 60_000) }, { id: sessionB, accountId: accountB, expiresAt: new Date(Date.now() + 60_000) }]);
     const tokenA = await signAccountSession(accountA, sessionA);
-    const createdClient = await clientsRouter.createCaller(contextFor(tokenA)).create({ fullName: "Dossier isolé A", observations: "Test temporaire supprimé automatiquement" });
+    const createdClient = await clientsRouter.createCaller(contextFor(tokenA)).create({ fullName: "Dossier isolé A", cnasAffiliated: true, casnosAffiliated: false, observations: "Test temporaire supprimé automatiquement" });
     clientA = createdClient.clientId;
     const createdSecondClient = await clientsRouter.createCaller(contextFor(tokenA)).create({ fullName: "Dossier isolé A secondaire", status: "Radié", observations: "Test temporaire supprimé automatiquement" });
     clientA2 = createdSecondClient.clientId;
@@ -48,6 +48,8 @@ suite("isolation persistante A/B", () => {
     if (accountIds.length) await db.delete(exportAudit).where(inArray(exportAudit.accountId, accountIds));
     if (accountIds.length) await db.delete(passwordVaultEntries).where(inArray(passwordVaultEntries.accountId, accountIds));
     if (accountIds.length) await db.delete(cabinetFinanceEntries).where(inArray(cabinetFinanceEntries.accountId, accountIds));
+    if (clientIds.length) await db.delete(clientCompliance).where(inArray(clientCompliance.clientId, clientIds));
+    if (clientIds.length) await db.delete(clientWorkCases).where(inArray(clientWorkCases.clientId, clientIds));
     if (clientIds.length) await db.delete(clientContacts).where(inArray(clientContacts.clientId, clientIds));
     if (clientIds.length) await db.delete(clients).where(inArray(clients.id, clientIds));
     if (accountIds.length) await db.delete(programClientStatuses).where(inArray(programClientStatuses.accountId, accountIds));
@@ -60,7 +62,7 @@ suite("isolation persistante A/B", () => {
     const tokenA = await signAccountSession(accountA, sessionA); const tokenB = await signAccountSession(accountB, sessionB);
     const callerA = clientsRouter.createCaller(contextFor(tokenA)); const callerB = clientsRouter.createCaller(contextFor(tokenB));
 
-    await expect(callerA.get({ clientId: clientA })).resolves.toMatchObject({ client: { id: clientA, accountId: accountA } });
+    await expect(callerA.get({ clientId: clientA })).resolves.toMatchObject({ client: { id: clientA, accountId: accountA, cnasAffiliated: true, casnosAffiliated: false } });
     await expect(callerB.get({ clientId: clientA })).rejects.toThrow("Client introuvable.");
     await expect(callerB.saveBundle({ clientId: clientA, data: { client: { fullName: "Tentative B" }, documents: [], compliance: [], cases: [], payments: [], cashEntries: [] } })).rejects.toThrow("Client introuvable.");
     await expect(callerB.archive({ clientId: clientA })).resolves.toEqual({ success: true });
@@ -74,9 +76,9 @@ suite("isolation persistante A/B", () => {
     await expect(exportA.exportData({ format: "json", scope: "all", clientIds: [clientA] })).resolves.toMatchObject({ clients: expect.arrayContaining([expect.objectContaining({ client: expect.objectContaining({ id: clientA, accountId: accountA }) }), expect.objectContaining({ client: expect.objectContaining({ id: clientA2, accountId: accountA }) })]) });
     await expect(exportA.exportData({ format: "json", scope: "selected", clientIds: [clientA] })).resolves.toMatchObject({ clients: [expect.objectContaining({ client: expect.objectContaining({ id: clientA }) })] });
     await expect(exportB.exportData({ format: "json", scope: "selected", clientIds: [clientA] })).resolves.toMatchObject({ clients: [] });
-    const imported = await importB.commitImport({ schemaVersion: 1, clients: [{ client: { fullName: "Import rattaché à B" }, documents: [], compliance: [], cases: [], payments: [], cashEntries: [] }] });
+    const imported = await importB.commitImport({ schemaVersion: 1, clients: [{ client: { fullName: "Import rattaché à B", cnasAffiliated: false, casnosAffiliated: true }, documents: [], compliance: [], cases: [], payments: [], cashEntries: [] }] });
     importedForB = imported.clientIds[0];
-    await expect(getOwnedClient(accountB, importedForB)).resolves.toMatchObject({ accountId: accountB });
+    await expect(getOwnedClient(accountB, importedForB)).resolves.toMatchObject({ accountId: accountB, cnasAffiliated: false, casnosAffiliated: true });
     await expect(getOwnedClient(accountA, importedForB)).resolves.toBeNull();
   });
 
@@ -108,6 +110,19 @@ suite("isolation persistante A/B", () => {
     await expect(financeB.remove({ entryId: created.entryId })).resolves.toEqual({ success: true });
     await expect(financeA.list({ clientId: clientA })).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: created.entryId, accountId: accountA, clientId: clientA })]));
     await expect(transfersRouter.createCaller(contextFor(tokenA)).exportData({ format: "json", scope: "selected", clientIds: [clientA] })).resolves.toMatchObject({ clients: [expect.objectContaining({ client: expect.objectContaining({ id: clientA }), financeEntries: expect.arrayContaining([expect.objectContaining({ category: "Caisse", label: "Opération depuis la fiche", amount: "80.00" }), expect.objectContaining({ id: created.entryId, category: "Paiement", amount: "1200.00" })]) })] });
+  });
+
+  it("conserve les données Conformité et Cases historiques hors des parcours actifs lors d’un enregistrement", async () => {
+    const tokenA = await signAccountSession(accountA, sessionA);
+    const callerA = clientsRouter.createCaller(contextFor(tokenA));
+    await db.insert(clientCompliance).values({ clientId: clientA, label: "Historique conformité", status: "À vérifier", note: "Conserver" });
+    await db.insert(clientWorkCases).values({ clientId: clientA, label: "Historique dossier", caseType: "Autre", status: "Terminé", note: "Conserver" });
+    await callerA.saveBundle({ clientId: clientA, data: { client: { fullName: "Dossier isolé A", cnasAffiliated: true, casnosAffiliated: true }, documents: [], compliance: [], cases: [], payments: [], cashEntries: [], financeEntries: [] } });
+    const preservedCompliance = await db.select().from(clientCompliance).where(eq(clientCompliance.clientId, clientA));
+    const preservedCases = await db.select().from(clientWorkCases).where(eq(clientWorkCases.clientId, clientA));
+    await expect(callerA.get({ clientId: clientA })).resolves.not.toHaveProperty("compliance");
+    expect(preservedCompliance).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Historique conformité" })]));
+    expect(preservedCases).toEqual(expect.arrayContaining([expect.objectContaining({ label: "Historique dossier" })]));
   });
 
   it("liste et restaure les contacts, statuts et valeurs archivés dans leur seul compte", async () => {

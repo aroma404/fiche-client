@@ -8,7 +8,7 @@ describe("feuille Accueil Excel", () => {
     const [archive] = await createIndividualExcelArchives({
       schemaVersion: 1,
       exportedAt: "2026-08-25T12:31:27.000Z",
-      clients: [{ client: { fullName: "Dossier de vérification" }, documents: [], compliance: [], cases: [], payments: [], cashEntries: [] }],
+      clients: [{ client: { fullName: "Dossier de vérification", cnasAffiliated: true, casnosAffiliated: false }, documents: [], compliance: [], cases: [], payments: [], cashEntries: [] }],
     });
     const bytes = await archive.blob.arrayBuffer();
     if (process.env.RENDER_ACCUEIL_XLSX) await writeFile(process.env.RENDER_ACCUEIL_XLSX, Buffer.from(bytes));
@@ -22,7 +22,10 @@ describe("feuille Accueil Excel", () => {
     expect(accueil.A6.v).toBe("Date de préparation");
     expect(accueil.C6.v).toContain("25/08/2026");
     expect(accueil.G6.l?.Target).toBe("#'Fiche 1'!A1");
-    expect(accueil["!ref"]).toBe("A1:J11");
+    expect(accueil["!ref"]).toBe("A1:J10");
+    const clientsSheet = workbook.Sheets.Clients;
+    expect(clientsSheet.T5.v).toBe("Oui");
+    expect(clientsSheet.U5.v).toBe("Non");
     const { BlobReader, TextWriter, ZipReader } = await import("@zip.js/zip.js");
     const zip = new ZipReader(new BlobReader(archive.blob));
     const sheet = (await zip.getEntries()).find(entry => entry.filename === "xl/worksheets/sheet1.xml");

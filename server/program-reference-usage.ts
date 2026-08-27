@@ -1,5 +1,5 @@
 import { and, count, eq, isNull, sql } from "drizzle-orm";
-import { cabinetFinanceEntries, clientCompliance, clientContacts, clientDocuments, clients, clientWorkCases, passwordVaultEntries, programClientOptions, programClientStatuses } from "../drizzle/schema";
+import { cabinetFinanceEntries, clientContacts, clientDocuments, clients, passwordVaultEntries, programClientOptions, programClientStatuses } from "../drizzle/schema";
 import { programReferenceRegistry, protectedReferenceChoices, type AccountOptionKind, type ProgramReferenceId } from "../shared/reference-registry";
 import { registreCommerceActivities, registreCommerceFamilies } from "../shared/registre-commerce-activities";
 
@@ -44,8 +44,6 @@ async function countUsageForReference(db: any, accountId: number, id: ProgramRef
   }
   if (id === "activityKind" || id === "autoEntrepreneurActivity" || id === "registreCommerce" || id === "taxCenter") return countClientField(id === "taxCenter" ? clients.taxCenter : id === "autoEntrepreneurActivity" ? clients.autoEntrepreneurActivity : id === "registreCommerce" ? clients.rcActivityCode : clients.activityKind);
   if (id === "documentStatus") { const [result] = await db.select({ value: count() }).from(clientDocuments).innerJoin(clients, eq(clientDocuments.clientId, clients.id)).where(and(eq(clients.accountId, accountId), isNull(clients.deletedAt))); return Number(result?.value ?? 0); }
-  if (id === "complianceStatus") { const [result] = await db.select({ value: count() }).from(clientCompliance).innerJoin(clients, eq(clientCompliance.clientId, clients.id)).where(and(eq(clients.accountId, accountId), isNull(clients.deletedAt))); return Number(result?.value ?? 0); }
-  if (id === "caseType" || id === "caseStatus") { const [result] = await db.select({ value: count() }).from(clientWorkCases).innerJoin(clients, eq(clientWorkCases.clientId, clients.id)).where(and(eq(clients.accountId, accountId), isNull(clients.deletedAt))); return Number(result?.value ?? 0); }
   if (id === "financeCategory" || id === "financeDirection") { const [result] = await db.select({ value: count() }).from(cabinetFinanceEntries).where(eq(cabinetFinanceEntries.accountId, accountId)); return Number(result?.value ?? 0); }
   return 0;
 }

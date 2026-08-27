@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createClientDraft, financeEntriesForBundle, isOperationalClient, taxCenterForRegimeCode } from "./client-data";
+import { createClientDraft, financeEntriesForBundle, isOperationalClient, normalizeBundle, taxCenterForRegimeCode } from "./client-data";
 
 describe("règles client partagées", () => {
   it("ne compte comme actif que les statuts opérationnels non archivés", () => {
@@ -26,5 +26,11 @@ describe("règles client partagées", () => {
 
   it("ne force aucun solde initial lors de la création d’un dossier", () => {
     expect(createClientDraft("Dossier sans solde").client.initialBalance).toBeNull();
+  });
+
+  it("initialise et relit les affiliations CNAS et CASNOS sans modifier les anciens paquets", () => {
+    expect(createClientDraft("Dossier social").client).toMatchObject({ cnasAffiliated: false, casnosAffiliated: false });
+    expect(normalizeBundle({ client: { fullName: "Dossier social", cnasAffiliated: true, casnosAffiliated: false } }).client).toMatchObject({ cnasAffiliated: true, casnosAffiliated: false });
+    expect(normalizeBundle({ client: { fullName: "Ancien dossier" } }).client).toMatchObject({ cnasAffiliated: false, casnosAffiliated: false });
   });
 });

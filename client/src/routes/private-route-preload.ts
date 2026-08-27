@@ -18,7 +18,6 @@ export const loadNewClientPage = cachedModule(() => import("@/features/clients/n
 export const loadClientsPage = cachedModule(() => import("@/features/clients/client-register-page").then(module => ({ default: module.ClientRegisterPage })));
 export const loadClientFichePage = cachedModule(() => import("@/features/clients/client-fiche-page").then(module => ({ default: module.ClientFichePage })));
 export const loadClientDocumentsPage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientDocumentsPage })));
-export const loadClientCompliancePage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientCompliancePage })));
 export const loadClientCasesPage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientCasesPage })));
 export const loadClientPaymentsPage = cachedModule(() => import("@/features/clients/client-payments-page").then(module => ({ default: module.ClientPaymentsPage })));
 export const loadClientCashPage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientCashPage })));
@@ -48,7 +47,6 @@ const featureRouteManifest = privateFeatureRegistry.map(feature => ({
 const clientFeatureLoaders: Record<ClientFeatureDefinition["slug"], CachedModule<{ default: React.ComponentType<any> }>> = {
   fiche: loadClientFichePage,
   documents: loadClientDocumentsPage,
-  conformite: loadClientCompliancePage,
   paiements: loadClientPaymentsPage,
   coffre: loadClientPasswordVaultPage,
   impression: loadClientPrintPage,

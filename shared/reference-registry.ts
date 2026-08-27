@@ -18,9 +18,6 @@ export const protectedReferenceChoices = {
   autoEntrepreneurActivity: [{ value: "", label: "Choisir une option" }, { value: "Micro-importation", label: "Micro-importation" }, { value: "Prestation de services", label: "Prestation de services" }],
   taxCenter: [{ value: "CDI", label: "CDI" }, { value: "CPI", label: "CPI" }],
   documentStatus: [{ value: "Reçu", label: "Reçu" }, { value: "À vérifier", label: "À vérifier" }, { value: "À demander", label: "À demander" }, { value: "Non requis", label: "Non requis" }],
-  complianceStatus: [{ value: "À vérifier", label: "À vérifier" }, { value: "Conforme", label: "Conforme" }, { value: "À régulariser", label: "À régulariser" }],
-  caseType: [{ value: "CDI", label: "CDI" }, { value: "CPI", label: "CPI" }, { value: "CASNOS", label: "CASNOS" }, { value: "Autre", label: "Autre" }],
-  caseStatus: [{ value: "À préparer", label: "À préparer" }, { value: "En cours", label: "En cours" }, { value: "Terminé", label: "Terminé" }],
   financeCategory: [{ value: "Paiement", label: "Paiement" }, { value: "Caisse", label: "Caisse" }],
   financeDirection: [{ value: "Entrée", label: "Entrée" }, { value: "Sortie", label: "Sortie" }],
   preferredExportFormat: [{ value: "xlsx", label: "Classeur Excel" }, { value: "json", label: "Archive JSON" }],
@@ -32,7 +29,7 @@ export type ProgramReferenceDefinition = {
   id: string;
   title: string;
   description: string;
-  group: "Dossiers" | "Référentiels" | "Activité" | "Conformité" | "Finance" | "Compte" | "Transferts";
+  group: "Dossiers" | "Référentiels" | "Activité" | "Finance" | "Compte" | "Transferts";
   scope: RegistryScope;
   source: RegistrySource;
   mode: RegistryMode;
@@ -51,10 +48,7 @@ export const programReferenceRegistry: readonly ProgramReferenceDefinition[] = [
   { id: "autoEntrepreneurActivity", title: "Activités d’auto-entrepreneur", description: "Sous-types autorisés pour les auto-entrepreneurs.", group: "Activité", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "dossiers" },
   { id: "registreCommerce", title: "Registre de commerce", description: "Catégories et activités strictement issues du catalogue Excel du cabinet.", group: "Activité", scope: "système", source: "catalogue-rc-excel", mode: "lecture-seule", usageLabel: "dossiers" },
   { id: "taxCenter", title: "Centres d’impôt", description: "Centres proposés dans les fiches, réglables dossier par dossier.", group: "Référentiels", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "dossiers" },
-  { id: "documentStatus", title: "Statuts documentaires", description: "États contrôlés des justificatifs.", group: "Conformité", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "documents" },
-  { id: "complianceStatus", title: "Statuts de conformité", description: "États contrôlés des vérifications.", group: "Conformité", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "contrôles" },
-  { id: "caseType", title: "Types de dossiers", description: "Cadres de dossier réglementaires.", group: "Conformité", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "dossiers de travail" },
-  { id: "caseStatus", title: "Statuts de dossiers", description: "Avancement des dossiers de travail.", group: "Conformité", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "dossiers de travail" },
+  { id: "documentStatus", title: "Statuts documentaires", description: "États contrôlés des justificatifs.", group: "Référentiels", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "documents" },
   { id: "financeCategory", title: "Natures financières", description: "Catégories protégées du registre financier.", group: "Finance", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "opérations" },
   { id: "financeDirection", title: "Sens financier", description: "Entrée ou sortie du registre financier.", group: "Finance", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "opérations" },
   { id: "preferredExportFormat", title: "Format d’export préféré", description: "Préférence personnelle conservée dans Mon compte.", group: "Compte", scope: "utilisateur", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "préférences" },

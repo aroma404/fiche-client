@@ -127,3 +127,8 @@
 - [x] Centraliser les métadonnées des sous-routes privées et client encore déclarées hors du registre de fonctionnalités.
 - [x] Refuser explicitement toute restauration de statut ou de valeur administrative hors du compte propriétaire et couvrir les nouvelles listes par des tests d’isolation.
 - [x] Obtenir une preuve authentifiée de la navigation burger/sidebar sur bureau, tablette et mobile sans utiliser de données réelles.
+- [x] Rendre Activité RC adaptative afin que قائمة النتائج تفتح للأعلى lorsque l’espace sous le champ est insuffisant.
+- [x] Rendre Catégorie RC recherchable au clavier par code, avec sélection au clic ou par Entrée sans autoriser de valeurs externes.
+- [x] Ajouter les affiliations persistantes CNAS et CASNOS avec choix Oui / Non dans la création, la fiche et l’impression du client.
+- [x] Retirer Conformité et Cases des parcours, routes et réglages actifs tout en préservant les données existantes et les imports historiques.
+- [x] Vérifier l’isolation des nouvelles affiliations, la compatibilité import/export et les interactions clavier RC.

@@ -2,12 +2,12 @@ import { and, asc, count, desc, eq, isNotNull, isNull } from "drizzle-orm";
 import { clients, programRcCatalogueEntries, programRcCatalogueFamilies } from "../drizzle/schema";
 import { activitiesForRegistreCommerceFamily, registreCommerceActivities, registreCommerceFamilies } from "../shared/registre-commerce-activities";
 import { normalizeRcCatalogueEntries, rcFamiliesFromEntries, type RcCatalogueEntry, type RcCatalogueEntryInput } from "../shared/rc-catalogue";
+import { archivePurgeAfterForAccount } from "./archive-policy";
 
 export type RcCatalogueActivity = { id?: number; code: string; label: string };
 export type RcCatalogueFamily = { id?: number; code: string; label: string; activityCount: number };
 type EffectiveRcEntry = RcCatalogueEntry;
 const REFERENCE_SOURCE = "Référence initiale du programme";
-const purgeAfterThirtyDays = () => new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
 async function catalogueIsMaterialized(db: any, accountId: number) {
   const first = await db.select({ id: programRcCatalogueFamilies.id }).from(programRcCatalogueFamilies).where(eq(programRcCatalogueFamilies.accountId, accountId)).limit(1);
@@ -135,7 +135,7 @@ export async function archiveRcFamily(db: any, accountId: number, id: number) {
   if (!family) throw new Error("Catégorie RC introuvable.");
   const [used] = await db.select({ value: count() }).from(clients).where(and(eq(clients.accountId, accountId), eq(clients.rcActivityFamily, family.code), eq(clients.activityKind, "Registre de commerce"), isNull(clients.deletedAt)));
   if (Number(used?.value ?? 0)) throw new Error("Cette catégorie est utilisée par un dossier et ne peut pas être retirée.");
-  const now = new Date(); const purgeAfter = purgeAfterThirtyDays();
+  const now = new Date(); const purgeAfter = await archivePurgeAfterForAccount(db, accountId, now);
   await db.transaction(async (tx: any) => { await tx.update(programRcCatalogueFamilies).set({ deletedAt: now, purgeAfter }).where(eq(programRcCatalogueFamilies.id, id)); await tx.update(programRcCatalogueEntries).set({ deletedAt: now, purgeAfter }).where(and(eq(programRcCatalogueEntries.accountId, accountId), eq(programRcCatalogueEntries.familyCode, family.code), isNull(programRcCatalogueEntries.deletedAt))); });
   return { success: true as const };
 }
@@ -170,7 +170,7 @@ export async function archiveRcActivity(db: any, accountId: number, id: number) 
   if (!activity) throw new Error("Activité RC introuvable.");
   const [used] = await db.select({ value: count() }).from(clients).where(and(eq(clients.accountId, accountId), eq(clients.rcActivityFamily, activity.familyCode), eq(clients.rcActivityCode, activity.activityCode), eq(clients.activityKind, "Registre de commerce"), isNull(clients.deletedAt)));
   if (Number(used?.value ?? 0)) throw new Error("Cette activité est utilisée par un dossier et ne peut pas être retirée.");
-  await db.update(programRcCatalogueEntries).set({ deletedAt: new Date(), purgeAfter: purgeAfterThirtyDays() }).where(eq(programRcCatalogueEntries.id, id));
+  const now = new Date(); await db.update(programRcCatalogueEntries).set({ deletedAt: now, purgeAfter: await archivePurgeAfterForAccount(db, accountId, now) }).where(eq(programRcCatalogueEntries.id, id));
   return { success: true as const };
 }
 

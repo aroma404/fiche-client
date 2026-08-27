@@ -3,7 +3,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { eq, inArray } from "drizzle-orm";
 import { randomUUID } from "node:crypto";
-import { accountSessions, accounts, cabinetFinanceEntries, clientCompliance, clientContacts, clientWorkCases, clients, exportAudit, passwordVaultEntries, programClientOptions, programClientStatuses } from "../drizzle/schema";
+import { accountSessions, accounts, cabinetFinanceEntries, clientCompliance, clientContacts, clientDocuments, clientFiles, clientWorkCases, clients, exportAudit, passwordVaultEntries, programClientOptions, programClientStatuses } from "../drizzle/schema";
 import { getDb, getOwnedClient } from "./db";
 import { signAccountSession } from "./auth/session";
 import { clientsRouter } from "./routers/clients";
@@ -11,6 +11,8 @@ import { cabinetFinanceRouter } from "./routers/cabinet-finance";
 import { transfersRouter } from "./routers/transfers";
 import { programSettingsRouter } from "./routers/program-settings";
 import { passwordVaultRouter } from "./routers/password-vault";
+import { accountRouter } from "./routers/account";
+import { archiveControlRouter } from "./routers/archive-control";
 
 const integrationEnabled = Boolean(process.env.DATABASE_URL);
 const suite = integrationEnabled ? describe : describe.skip;
@@ -21,6 +23,7 @@ let accountB = 0;
 let clientA = 0;
 let clientA2 = 0;
 let importedForB = 0;
+let archivedClientForA = 0;
 const sessionA = `itest-${runId.slice(0, 40)}-a`;
 const sessionB = `itest-${runId.slice(0, 40)}-b`;
 
@@ -44,13 +47,15 @@ suite("isolation persistante A/B", () => {
   afterAll(async () => {
     if (!db) return;
     const accountIds = [accountA, accountB].filter(Boolean);
-    const clientIds = [clientA, clientA2, importedForB].filter(Boolean);
+    const clientIds = [clientA, clientA2, importedForB, archivedClientForA].filter(Boolean);
     if (accountIds.length) await db.delete(exportAudit).where(inArray(exportAudit.accountId, accountIds));
     if (accountIds.length) await db.delete(passwordVaultEntries).where(inArray(passwordVaultEntries.accountId, accountIds));
     if (accountIds.length) await db.delete(cabinetFinanceEntries).where(inArray(cabinetFinanceEntries.accountId, accountIds));
     if (clientIds.length) await db.delete(clientCompliance).where(inArray(clientCompliance.clientId, clientIds));
     if (clientIds.length) await db.delete(clientWorkCases).where(inArray(clientWorkCases.clientId, clientIds));
     if (clientIds.length) await db.delete(clientContacts).where(inArray(clientContacts.clientId, clientIds));
+    if (clientIds.length) await db.delete(clientDocuments).where(inArray(clientDocuments.clientId, clientIds));
+    if (clientIds.length) await db.delete(clientFiles).where(inArray(clientFiles.clientId, clientIds));
     if (clientIds.length) await db.delete(clients).where(inArray(clients.id, clientIds));
     if (accountIds.length) await db.delete(programClientStatuses).where(inArray(programClientStatuses.accountId, accountIds));
     if (accountIds.length) await db.delete(programClientOptions).where(inArray(programClientOptions.accountId, accountIds));
@@ -196,5 +201,20 @@ suite("isolation persistante A/B", () => {
     await expect(vaultA.archived({ clientId: clientA2 })).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: entry.id, clientId: clientA2 })]));
     await clientsA.restore({ clientId: clientA2 });
     await expect(vaultA.list({ clientId: clientA2 })).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: entry.id })]));
+  });
+
+  it("applique la rétention choisie et bloque toute purge immédiate hors du compte autorisé", async () => {
+    const tokenA = await signAccountSession(accountA, sessionA); const tokenB = await signAccountSession(accountB, sessionB);
+    const accountAContext = accountRouter.createCaller(contextFor(tokenA)); const accountBContext = accountRouter.createCaller(contextFor(tokenB)); const clientsA = clientsRouter.createCaller(contextFor(tokenA)); const archivesA = archiveControlRouter.createCaller(contextFor(tokenA)); const archivesB = archiveControlRouter.createCaller(contextFor(tokenB));
+    await accountAContext.archivePolicy.update({ retentionDays: 7, allowImmediateDeletion: false });
+    const created = await clientsA.create({ fullName: "Dossier rétention temporaire" }); archivedClientForA = created.clientId;
+    await clientsA.archive({ clientId: archivedClientForA });
+    const archived = (await clientsA.list({ includeArchived: true })).find(client => client.id === archivedClientForA); if (!archived?.purgeAfter || !archived.archivedAt) throw new Error("Archive de test absente.");
+    const duration = new Date(archived.purgeAfter).getTime() - new Date(archived.archivedAt).getTime(); expect(duration).toBeGreaterThanOrEqual(6 * 86_400_000); expect(duration).toBeLessThanOrEqual(8 * 86_400_000);
+    await expect(archivesA.purgeClient({ clientId: archivedClientForA })).rejects.toThrow("désactivée");
+    await accountBContext.archivePolicy.update({ retentionDays: 90, allowImmediateDeletion: true });
+    await expect(archivesB.purgeClient({ clientId: archivedClientForA })).rejects.toThrow("Dossier archivé introuvable.");
+    await accountAContext.archivePolicy.update({ retentionDays: 7, allowImmediateDeletion: true });
+    await expect(archivesA.purgeClient({ clientId: archivedClientForA })).resolves.toMatchObject({ clients: 1 });
   });
 });

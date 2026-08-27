@@ -15,17 +15,18 @@ export async function purgeExpiredArchive(now = new Date()) {
     ]);
     for (const client of expiredClients) await tx.delete(clients).where(and(eq(clients.id, client.id), eq(clients.accountId, client.accountId), lte(clients.purgeAfter, now)));
   });
-  const [contacts, documents, files, options, statuses, vault, rcActivities, rcFamilies] = await Promise.all([
+  const [contacts, documents, files, finances, options, statuses, vault, rcActivities, rcFamilies] = await Promise.all([
     db.delete(clientContacts).where(lte(clientContacts.purgeAfter, now)),
     db.delete(clientDocuments).where(lte(clientDocuments.purgeAfter, now)),
     db.delete(clientFiles).where(lte(clientFiles.purgeAfter, now)),
+    db.delete(cabinetFinanceEntries).where(lte(cabinetFinanceEntries.purgeAfter, now)),
     db.delete(programClientOptions).where(lte(programClientOptions.purgeAfter, now)),
     db.delete(programClientStatuses).where(lte(programClientStatuses.purgeAfter, now)),
     db.delete(passwordVaultEntries).where(lte(passwordVaultEntries.purgeAfter, now)),
     db.delete(programRcCatalogueEntries).where(lte(programRcCatalogueEntries.purgeAfter, now)),
     db.delete(programRcCatalogueFamilies).where(lte(programRcCatalogueFamilies.purgeAfter, now)),
   ]);
-  return { clients: clientIds.length, contacts: contacts[0]?.affectedRows ?? 0, documents: documents[0]?.affectedRows ?? 0, files: files[0]?.affectedRows ?? 0, options: options[0]?.affectedRows ?? 0, statuses: statuses[0]?.affectedRows ?? 0, vault: vault[0]?.affectedRows ?? 0, rcActivities: rcActivities[0]?.affectedRows ?? 0, rcFamilies: rcFamilies[0]?.affectedRows ?? 0 };
+  return { clients: clientIds.length, contacts: contacts[0]?.affectedRows ?? 0, documents: documents[0]?.affectedRows ?? 0, files: files[0]?.affectedRows ?? 0, finances: finances[0]?.affectedRows ?? 0, options: options[0]?.affectedRows ?? 0, statuses: statuses[0]?.affectedRows ?? 0, vault: vault[0]?.affectedRows ?? 0, rcActivities: rcActivities[0]?.affectedRows ?? 0, rcFamilies: rcFamilies[0]?.affectedRows ?? 0 };
 }
 
 export async function archiveCleanupHandler(req: Request, res: Response) {

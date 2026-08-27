@@ -11,13 +11,14 @@ import { getCurrentAccount, requireCurrentAccount } from "../account-context";
 import { hashPassword, verifyPassword } from "../auth/password";
 import { ACCOUNT_SESSION_COOKIE, sessionMaxAge, signAccountSession, verifyAccountSession } from "../auth/session";
 import { getAccountByEmail, getDb } from "../db";
+import { archiveRetentionDayChoices, getAccountArchivePolicy } from "../archive-policy";
 
 const passwordSchema = z.string().min(10, "Le mot de passe doit contenir au moins 10 caractères.").max(128);
 const profileSchema = z.object({ fullName: z.string().trim().min(3).max(180) });
 const emailSchema = z.string().trim().email("Indiquez une adresse e-mail valide.").max(320);
 
-function publicAccount(account: { id: number; fullName: string; email: string; preferredExportFormat: "json" | "xlsx"; preferredDocumentMode: "pdf" | "print" }) {
-  return { id: account.id, fullName: account.fullName, email: account.email, preferredExportFormat: account.preferredExportFormat, preferredDocumentMode: account.preferredDocumentMode };
+function publicAccount(account: { id: number; fullName: string; email: string; preferredExportFormat: "json" | "xlsx"; preferredDocumentMode: "pdf" | "print"; archiveRetentionDays: number; allowImmediateArchiveDeletion: boolean }) {
+  return { id: account.id, fullName: account.fullName, email: account.email, preferredExportFormat: account.preferredExportFormat, preferredDocumentMode: account.preferredDocumentMode, archiveRetentionDays: account.archiveRetentionDays, allowImmediateArchiveDeletion: account.allowImmediateArchiveDeletion };
 }
 
 function writeSessionCookie(ctx: { req: Parameters<typeof getSessionCookieOptions>[0]; res: { cookie: Function } }, token: string, rememberMe: boolean) {
@@ -115,6 +116,22 @@ export const accountRouter = router({
     if (!db) throw new Error("La base de données est indisponible.");
     await db.update(accounts).set(input).where(eq(accounts.id, account.id));
     return { ...publicAccount(account), ...input };
+  }),
+
+  archivePolicy: router({
+    get: publicProcedure.query(async ({ ctx }) => {
+      const account = await requireCurrentAccount(ctx.req);
+      const db = await getDb();
+      if (!db) throw new Error("La base de données est indisponible.");
+      return getAccountArchivePolicy(db, account.id);
+    }),
+    update: publicProcedure.input(z.object({ retentionDays: z.union(archiveRetentionDayChoices.map(day => z.literal(day)) as [z.ZodLiteral<7>, z.ZodLiteral<15>, z.ZodLiteral<30>, z.ZodLiteral<60>, z.ZodLiteral<90>]), allowImmediateDeletion: z.boolean() })).mutation(async ({ ctx, input }) => {
+      const account = await requireCurrentAccount(ctx.req);
+      const db = await getDb();
+      if (!db) throw new Error("La base de données est indisponible.");
+      await db.update(accounts).set({ archiveRetentionDays: input.retentionDays, allowImmediateArchiveDeletion: input.allowImmediateDeletion }).where(eq(accounts.id, account.id));
+      return { retentionDays: input.retentionDays, allowImmediateDeletion: input.allowImmediateDeletion } as const;
+    }),
   }),
 
   changePassword: publicProcedure.input(z.object({ currentPassword: z.string().min(1), newPassword: passwordSchema })).mutation(async ({ ctx, input }) => {

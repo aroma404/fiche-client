@@ -1,31 +1,25 @@
 import { AppSelect } from "@/components/form/app-select";
 import { PageTitle, WorkspaceLayout } from "@/components/workspace-layout";
-import { AccountProgramNav } from "@/features/account/account-program-nav";
-import { RcCatalogueManager } from "@/features/program-settings/rc-catalogue-manager";
 import { trpc } from "@/lib/trpc";
 import { programReferenceRegistry, type AccountOptionKind, type ProgramReferenceDefinition } from "@shared/reference-registry";
-import { BookOpenCheck, FolderCog, ListChecks, Plus, Save, Settings2, Trash2 } from "lucide-react";
+import { FolderCog, ListChecks, Plus, Save, Settings2, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 type ProgramStatus = { id: number; label: string; isOperational: boolean; usageCount?: number };
 type ProgramOption = { id: number; code: string; label: string; usageCount?: number };
 type ReferenceSummary = ProgramReferenceDefinition & { valueCount: number; usageCount: number; catalogueFamilies?: number };
-type SettingsTab = "dossiers" | "listes" | "registre-rc";
+type SettingsTab = "dossiers" | "listes";
 
 const optionSections = programReferenceRegistry.filter(reference => reference.optionKind).map(reference => ({ kind: reference.optionKind as AccountOptionKind, eyebrow: reference.group, title: reference.title, hint: reference.description }));
 const tabs: { id: SettingsTab; label: string; icon: typeof FolderCog }[] = [
   { id: "dossiers", label: "Dossiers", icon: FolderCog },
   { id: "listes", label: "Listes du cabinet", icon: ListChecks },
-  { id: "registre-rc", label: "Registre de commerce", icon: BookOpenCheck },
 ];
 
 export function ProgramSettingsPage() {
   const utils = trpc.useUtils();
   const statuses = trpc.programSettings.clientStatuses.list.useQuery(undefined, { staleTime: 30_000 });
   const referenceRegistry = trpc.programSettings.referenceRegistry.list.useQuery(undefined, { staleTime: 30_000 });
-  const archivedStatuses = trpc.programSettings.clientStatuses.archived.useQuery(undefined, { staleTime: 30_000 });
-  const archivedOptions = trpc.programSettings.clientOptions.archived.useQuery(undefined, { staleTime: 30_000 });
-  const archivedRc = trpc.programSettings.rcCatalogue.archived.useQuery(undefined, { staleTime: 30_000 });
   const [activeTab, setActiveTab] = useState<SettingsTab>("dossiers");
   const [newLabel, setNewLabel] = useState("");
   const [newOperational, setNewOperational] = useState(true);
@@ -40,7 +34,6 @@ export function ProgramSettingsPage() {
 
   return <WorkspaceLayout>
     <PageTitle eyebrow="Configuration du cabinet" title="Réglages du programme" description="Gérez les listes et le catalogue utilisés par votre cabinet." />
-    <AccountProgramNav />
     <nav aria-label="Sections des réglages" className="mb-6 flex gap-1 overflow-x-auto border-b border-[#d7e0df]">{tabs.map(tab => { const Icon = tab.icon; const active = activeTab === tab.id; return <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-bold ${active ? "border-[#0b625e] text-[#0b625e]" : "border-transparent text-[#627785] hover:text-[#182b3a]"}`}><Icon size={16} />{tab.label}</button>; })}</nav>
 
     {activeTab === "dossiers" ? <section className="space-y-5">
@@ -49,8 +42,7 @@ export function ProgramSettingsPage() {
       <section className="grid gap-5 2xl:grid-cols-3">{dossierOptions.map(section => <ClientOptionSection key={section.kind} {...section} />)}</section>
     </section> : null}
 
-    {activeTab === "listes" ? <section className="space-y-5"><SettingsHeader icon={<ListChecks size={19} />} eyebrow="Listes utilisées" title="Contacts, accès et documents" text="Ces valeurs alimentent les listes déroulantes réellement utilisées dans les dossiers." /><section className="grid gap-5 2xl:grid-cols-2">{organisationOptions.map(section => <ClientOptionSection key={section.kind} {...section} />)}</section><RetentionPanel statuses={archivedStatuses.data ?? []} options={archivedOptions.data ?? []} rcFamilies={archivedRc.data?.families ?? []} rcActivities={archivedRc.data?.activities ?? []} loading={archivedStatuses.isLoading || archivedOptions.isLoading || archivedRc.isLoading} /><ReferenceControlList references={references} loading={referenceRegistry.isLoading} /></section> : null}
-    {activeTab === "registre-rc" ? <RcCatalogueManager /> : null}
+    {activeTab === "listes" ? <section className="space-y-5"><SettingsHeader icon={<ListChecks size={19} />} eyebrow="Listes utilisées" title="Contacts, accès et documents" text="Ces valeurs alimentent les listes déroulantes réellement utilisées dans les dossiers." /><section className="grid gap-5 2xl:grid-cols-2">{organisationOptions.map(section => <ClientOptionSection key={section.kind} {...section} />)}</section><ReferenceControlList references={references} loading={referenceRegistry.isLoading} /></section> : null}
   </WorkspaceLayout>;
 }
 

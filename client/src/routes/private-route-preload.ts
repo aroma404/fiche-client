@@ -26,6 +26,7 @@ export const loadDashboardPage = cachedModule(() => import("@/pages/dashboard-pa
 export const loadTransfersPage = cachedModule(() => import("@/pages/transfers-page").then(module => ({ default: module.TransfersPage })));
 export const loadCabinetFinancePage = cachedModule(() => import("@/pages/cabinet-finance-page").then(module => ({ default: module.CabinetFinancePage })));
 export const loadArchivesPage = cachedModule(() => import("@/pages/archives-page").then(module => ({ default: module.ArchivesPage })));
+export const loadRegistreCommercePage = cachedModule(() => import("@/pages/registre-commerce-page").then(module => ({ default: module.RegistreCommercePage })));
 export const loadClientPasswordVaultPage = cachedModule(() => import("@/features/clients/client-password-vault-page").then(module => ({ default: module.ClientPasswordVaultPage })));
 
 const mainFeatureLoaders: Record<PrivateFeatureDefinition["id"], CachedModule<{ default: React.ComponentType<any> }>> = {
@@ -34,6 +35,7 @@ const mainFeatureLoaders: Record<PrivateFeatureDefinition["id"], CachedModule<{ 
   finances: loadCabinetFinancePage,
   transfers: loadTransfersPage,
   archives: loadArchivesPage,
+  commerce: loadRegistreCommercePage,
   settings: loadProgramSettingsPage,
   account: loadAccountPage,
 };

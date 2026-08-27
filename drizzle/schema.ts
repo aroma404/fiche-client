@@ -33,6 +33,8 @@ export const accounts = mysqlTable("accounts", {
   passwordHash: varchar("passwordHash", { length: 255 }).notNull(),
   preferredExportFormat: mysqlEnum("preferredExportFormat", ["json", "xlsx"]).default("xlsx").notNull(),
   preferredDocumentMode: mysqlEnum("preferredDocumentMode", ["pdf", "print"]).default("pdf").notNull(),
+  archiveRetentionDays: int("archiveRetentionDays").default(30).notNull(),
+  allowImmediateArchiveDeletion: boolean("allowImmediateArchiveDeletion").default(false).notNull(),
   termsAcceptedAt: timestamp("termsAcceptedAt").defaultNow().notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -260,9 +262,11 @@ export const cabinetFinanceEntries = mysqlTable("cabinet_finance_entries", {
   reference: varchar("reference", { length: 160 }).default(""),
   amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
   note: varchar("note", { length: 500 }).default(""),
+  deletedAt: timestamp("deletedAt"),
+  purgeAfter: timestamp("purgeAfter"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, table => [index("cabinet_finance_account_date_idx").on(table.accountId, table.entryDate), index("cabinet_finance_client_idx").on(table.clientId), index("cabinet_finance_document_idx").on(table.documentId), index("cabinet_finance_account_client_date_idx").on(table.accountId, table.clientId, table.entryDate, table.id)]);
+}, table => [index("cabinet_finance_account_date_idx").on(table.accountId, table.entryDate), index("cabinet_finance_client_idx").on(table.clientId), index("cabinet_finance_document_idx").on(table.documentId), index("cabinet_finance_account_client_date_idx").on(table.accountId, table.clientId, table.entryDate, table.id), index("cabinet_finance_account_deleted_date_idx").on(table.accountId, table.deletedAt, table.entryDate), index("cabinet_finance_purge_after_idx").on(table.purgeAfter)]);
 
 export const exportAudit = mysqlTable("export_audit", {
   id: int("id").autoincrement().primaryKey(),

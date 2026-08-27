@@ -158,3 +158,11 @@
 - [x] Permettre la modification des paiements, les relier à un document du même dossier et renommer le tiers externe.
 - [x] Ajouter les indicateurs jour/mois/année des dossiers les plus traités et des meilleurs payeurs.
 - [x] Valider migrations, isolation, imports, fichiers, paiements, interface et synchroniser automatiquement avec GitHub.
+- [x] Ajouter une conservation configurable par compte (7/15/30/60/90 jours) et l’autorisation de purge immédiate.
+- [x] Déplacer les paramètres et actions de conservation dans Archives, avec suppressions définitives unitaire et globale confirmées.
+- [x] Afficher les formulaires de paiement et de caisse sur toute la largeur, sans indicateurs client dans Finances.
+- [x] Permettre de modifier et archiver les paiements existants depuis le registre financier.
+- [x] Ajouter l’archivage d’un client directement dans le registre clients.
+- [x] Retirer l’import Excel RC et déplacer le Registre de commerce vers une page de premier niveau.
+- [x] Réorganiser la navigation directe autour de Dossiers, Registre de commerce et Mon compte.
+- [ ] Valider les protections de purge, les parcours et la synchronisation GitHub.

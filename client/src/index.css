@@ -80,6 +80,10 @@
   .ui-input { min-height: 2.75rem; width: 100%; border: 1px solid #cfd6ce; background: #fffefa; padding: 0 .8rem; color: #182b3a; font-size: .875rem; outline: none; }
   .ui-input:focus { border-color: #0b625e; box-shadow: 0 0 0 3px rgba(11,98,94,.1); }
   .status-dot { display: inline-block; height: .45rem; width: .45rem; border-radius: 999px; background: #0b625e; box-shadow: 0 0 0 3px rgba(11,98,94,.12); }
+  .contact-action { display: inline-flex; height: 2.25rem; width: 2.25rem; align-items: center; justify-content: center; border: 1px solid #d5e2dc; background: #f7faf8; color: #0b625e; }
+  .contact-action:hover { border-color: #0b625e; background: #eaf6f1; box-shadow: none; }
+  .contact-action--danger { color: #ad4339; border-color: #ecd2cf; }
+  .contact-action--danger:hover { border-color: #ad4339; background: #fff1ef; }
 }
 
 @keyframes app-enter { from { opacity: 0; transform: translateY(9px); } to { opacity: 1; transform: translateY(0); } }

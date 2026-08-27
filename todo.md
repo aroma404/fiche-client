@@ -136,3 +136,6 @@
 - [x] Ajouter les index composés non destructifs nécessaires aux dossiers, contacts, finances, archives et réglages isolés par compte.
 - [x] Mesurer et optimiser les parcours de lecture et d’écriture prioritaires sans exposer ni modifier de données réelles.
 - [x] Valider l’isolation par compte, les migrations et le build après l’optimisation de la base de données.
+- [x] Simplifier le formulaire Contacts de Fiche à deux champs : type Téléphone/E-mail et coordonnée.
+- [x] Harmoniser les actions enregistrées de chaque contact avec le design system, sans champs ou boutons superflus.
+- [x] Vérifier la persistance, les liens d’action et le responsive du nouveau panneau Contacts.

@@ -132,3 +132,7 @@
 - [x] Ajouter les affiliations persistantes CNAS et CASNOS avec choix Oui / Non dans la création, la fiche et l’impression du client.
 - [x] Retirer Conformité et Cases des parcours, routes et réglages actifs tout en préservant les données existantes et les imports historiques.
 - [x] Vérifier l’isolation des nouvelles affiliations, la compatibilité import/export et les interactions clavier RC.
+- [x] Vérifier la connexion à la base de données réelle, l’état des migrations et les requêtes les plus fréquentes.
+- [x] Ajouter les index composés non destructifs nécessaires aux dossiers, contacts, finances, archives et réglages isolés par compte.
+- [x] Mesurer et optimiser les parcours de lecture et d’écriture prioritaires sans exposer ni modifier de données réelles.
+- [x] Valider l’isolation par compte, les migrations et le build après l’optimisation de la base de données.

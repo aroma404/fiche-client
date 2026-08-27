@@ -45,7 +45,7 @@ export const accountSessions = mysqlTable("account_sessions", {
   rememberMe: boolean("rememberMe").default(false).notNull(),
   revokedAt: timestamp("revokedAt"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, table => [index("account_sessions_account_idx").on(table.accountId)]);
+}, table => [index("account_sessions_account_idx").on(table.accountId), index("account_sessions_account_revoked_expiry_idx").on(table.accountId, table.revokedAt, table.expiresAt)]);
 
 /** Coffre chiffré côté serveur, strictement isolé par compte et par dossier client. */
 export const passwordVaultEntries = mysqlTable("password_vault_entries", {
@@ -65,7 +65,7 @@ export const passwordVaultEntries = mysqlTable("password_vault_entries", {
   purgeAfter: timestamp("purgeAfter"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, table => [index("password_vault_entries_account_idx").on(table.accountId), index("password_vault_entries_account_client_idx").on(table.accountId, table.clientId)]);
+}, table => [index("password_vault_entries_account_idx").on(table.accountId), index("password_vault_entries_account_client_idx").on(table.accountId, table.clientId), index("password_vault_entries_account_client_deleted_idx").on(table.accountId, table.clientId, table.deletedAt), index("password_vault_entries_purge_after_idx").on(table.purgeAfter)]);
 
 export const clients = mysqlTable("clients", {
   id: int("id").autoincrement().primaryKey(),
@@ -97,7 +97,7 @@ export const clients = mysqlTable("clients", {
   purgeAfter: timestamp("purgeAfter"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, table => [index("clients_account_idx").on(table.accountId), index("clients_account_name_idx").on(table.accountId, table.fullName)]);
+}, table => [index("clients_account_idx").on(table.accountId), index("clients_account_name_idx").on(table.accountId, table.fullName), index("clients_account_archived_name_idx").on(table.accountId, table.archivedAt, table.fullName), index("clients_purge_after_idx").on(table.purgeAfter)]);
 
 /** Statuts administrables des dossiers, strictement limités au compte propriétaire. */
 export const programClientStatuses = mysqlTable("program_client_statuses", {
@@ -110,7 +110,7 @@ export const programClientStatuses = mysqlTable("program_client_statuses", {
   purgeAfter: timestamp("purgeAfter"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, table => [index("program_client_statuses_account_idx").on(table.accountId), uniqueIndex("program_client_statuses_account_label_unique").on(table.accountId, table.label)]);
+}, table => [index("program_client_statuses_account_idx").on(table.accountId), uniqueIndex("program_client_statuses_account_label_unique").on(table.accountId, table.label), index("program_client_statuses_account_deleted_sort_idx").on(table.accountId, table.deletedAt, table.sortOrder)]);
 
 /** Valeurs administrables des listes client, isolées par cabinet et conservant un code métier stable. */
 export const programClientOptions = mysqlTable("program_client_options", {
@@ -124,7 +124,7 @@ export const programClientOptions = mysqlTable("program_client_options", {
   purgeAfter: timestamp("purgeAfter"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, table => [index("program_client_options_account_kind_idx").on(table.accountId, table.kind), uniqueIndex("program_client_options_account_kind_code_unique").on(table.accountId, table.kind, table.code)]);
+}, table => [index("program_client_options_account_kind_idx").on(table.accountId, table.kind), uniqueIndex("program_client_options_account_kind_code_unique").on(table.accountId, table.kind, table.code), index("program_client_options_account_kind_deleted_sort_idx").on(table.accountId, table.kind, table.deletedAt, table.sortOrder)]);
 
 /** Contacts administratifs du dossier. Les valeurs restent limitées au compte propriétaire du client. */
 export const clientContacts = mysqlTable("client_contacts", {
@@ -138,7 +138,7 @@ export const clientContacts = mysqlTable("client_contacts", {
   purgeAfter: timestamp("purgeAfter"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, table => [index("client_contacts_client_idx").on(table.clientId)]);
+}, table => [index("client_contacts_client_idx").on(table.clientId), index("client_contacts_client_deleted_idx").on(table.clientId, table.deletedAt), index("client_contacts_purge_after_idx").on(table.purgeAfter)]);
 
 export const clientDocuments = mysqlTable("client_documents", {
   id: int("id").autoincrement().primaryKey(),
@@ -205,7 +205,7 @@ export const cabinetFinanceEntries = mysqlTable("cabinet_finance_entries", {
   amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
   note: varchar("note", { length: 500 }).default(""),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, table => [index("cabinet_finance_account_date_idx").on(table.accountId, table.entryDate), index("cabinet_finance_client_idx").on(table.clientId)]);
+}, table => [index("cabinet_finance_account_date_idx").on(table.accountId, table.entryDate), index("cabinet_finance_client_idx").on(table.clientId), index("cabinet_finance_account_client_date_idx").on(table.accountId, table.clientId, table.entryDate, table.id)]);
 
 export const exportAudit = mysqlTable("export_audit", {
   id: int("id").autoincrement().primaryKey(),
@@ -214,4 +214,4 @@ export const exportAudit = mysqlTable("export_audit", {
   scope: mysqlEnum("scope", ["active", "selected", "all"]).notNull(),
   clientCount: int("clientCount").notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, table => [index("export_audit_account_idx").on(table.accountId)]);
+}, table => [index("export_audit_account_idx").on(table.accountId), index("export_audit_account_created_idx").on(table.accountId, table.createdAt)]);

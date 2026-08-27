@@ -131,5 +131,30 @@ export async function getClientBundles(accountId: number, clientIds?: number[]) 
   if (!db) throw new Error("La base de données est indisponible.");
   const filter = clientIds?.length ? and(eq(clients.accountId, accountId), inArray(clients.id, clientIds)) : eq(clients.accountId, accountId);
   const owned = await db.select().from(clients).where(filter);
-  return Promise.all(owned.map(client => getClientBundle(accountId, client.id)));
+  if (!owned.length) return [];
+  const ownedIds = owned.map(client => client.id);
+  const [documents, payments, cashEntries, financeEntries, contacts] = await Promise.all([
+    db.select().from(clientDocuments).where(inArray(clientDocuments.clientId, ownedIds)),
+    db.select().from(clientPayments).where(inArray(clientPayments.clientId, ownedIds)),
+    db.select().from(clientCashEntries).where(inArray(clientCashEntries.clientId, ownedIds)),
+    db.select().from(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.accountId, accountId), inArray(cabinetFinanceEntries.clientId, ownedIds))),
+    db.select().from(clientContacts).where(and(inArray(clientContacts.clientId, ownedIds), isNull(clientContacts.deletedAt))),
+  ]);
+  const groupByClient = <T extends { clientId: number | null }>(rows: T[]) => rows.reduce((groups, row) => {
+    if (row.clientId !== null) groups.get(row.clientId)?.push(row) ?? groups.set(row.clientId, [row]);
+    return groups;
+  }, new Map<number, T[]>());
+  const documentsByClient = groupByClient(documents);
+  const paymentsByClient = groupByClient(payments);
+  const cashEntriesByClient = groupByClient(cashEntries);
+  const financeEntriesByClient = groupByClient(financeEntries);
+  const contactsByClient = groupByClient(contacts);
+  return owned.map(client => ({
+    client,
+    documents: documentsByClient.get(client.id) ?? [],
+    payments: paymentsByClient.get(client.id) ?? [],
+    cashEntries: cashEntriesByClient.get(client.id) ?? [],
+    financeEntries: financeEntriesByClient.get(client.id) ?? [],
+    contacts: contactsByClient.get(client.id) ?? [],
+  }));
 }

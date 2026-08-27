@@ -10,7 +10,7 @@ import { createContext, type ReactNode, useContext, useEffect, useMemo, useState
 import { useLocation } from "wouter";
 import { preloadPrivateRoute, prewarmCorePrivateRoutes } from "@/routes/private-route-preload";
 
-type WorkspaceClient = { id: number; fullName: string; archivedAt: Date | string | null; activity: string | null; commune: string | null; contact: string | null; nif: string | null; regime: string | null; legalForm: string | null; status: string | null; initialBalance: number | string | null; updatedAt: Date | string };
+type WorkspaceClient = { id: number; referenceNumber: number | null; fullName: string; archivedAt: Date | string | null; activity: string | null; commune: string | null; contact: string | null; nif: string | null; regime: string | null; legalForm: string | null; status: string | null; initialBalance: number | string | null; updatedAt: Date | string };
 const WorkspaceClientsContext = createContext<{ clients: WorkspaceClient[]; allClients: WorkspaceClient[]; operationalStatusLabels: string[]; isLoading: boolean } | null>(null);
 
 export function useWorkspaceClients() { const value = useContext(WorkspaceClientsContext); if (!value) throw new Error("WorkspaceClientsContext est requis dans WorkspaceLayout."); return value; }

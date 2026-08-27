@@ -5,7 +5,7 @@ import { accountOptionDefaults, accountOptionKinds, type AccountOptionKind } fro
 export { accountOptionKinds as programOptionKinds };
 export type ProgramOptionKind = AccountOptionKind;
 
-export const clientColumnForOption = { legalForm: "legalForm", clientType: "clientType", regime: "regime" } as const;
+export const clientColumnForOption = { legalForm: "legalForm", clientType: "clientType", regime: "regime", taxCenter: "taxCenter", activityKind: "activityKind" } as const;
 
 export async function listProgramClientOptions(db: any, accountId: number, kind: ProgramOptionKind) {
   let rows = await db.select().from(programClientOptions).where(and(eq(programClientOptions.accountId, accountId), eq(programClientOptions.kind, kind), isNull(programClientOptions.deletedAt))).orderBy(asc(programClientOptions.sortOrder), asc(programClientOptions.label));

@@ -147,3 +147,14 @@
 - [x] Redéfinir « Carte des listes du programme » avec un intitulé clair et des actions de gestion réelles.
 - [x] Ajouter un parcours contrôlé permettant de mettre à jour le catalogue RC uniquement à partir d’un fichier Excel autorisé.
 - [x] Vérifier les réglages reconstruits, puis les synchroniser automatiquement avec GitHub.
+- [x] Rendre administrables par compte les centres d’impôt, domaines d’activité, catégories et statuts de document via le registre central.
+- [x] Afficher directement la rétention des éléments archivés dans Réglages : jours restants, date d’expiration et suppression anticipée interdite.
+- [x] Permettre le CRUD sécurisé des catégories et activités RC par compte, avec blocage des suppressions utilisées et import Excel conservé.
+- [x] Ajouter une référence client séquentielle par compte et afficher « Agriculteur » dans les activités.
+- [x] Ajouter l’affiliation CACOBATPH dans création, fiche, impression et export du client.
+- [x] Rendre Documents entièrement éditables et reliables aux paiements sans effacer les données historiques.
+- [x] Ajouter un coffre de fichiers client avec stockage objet sécurisé, nom, catégorie et métadonnées.
+- [x] Ajouter la suppression archivée du client, sans suppression définitive avant l’échéance de 30 jours.
+- [x] Permettre la modification des paiements, les relier à un document du même dossier et renommer le tiers externe.
+- [x] Ajouter les indicateurs jour/mois/année des dossiers les plus traités et des meilleurs payeurs.
+- [ ] Valider migrations, isolation, imports, fichiers, paiements, interface et synchroniser automatiquement avec GitHub.

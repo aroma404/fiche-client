@@ -1,12 +1,12 @@
 import { and, asc, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { z } from "zod";
-import { clientContacts, clients, passwordVaultEntries, programClientOptions, programClientStatuses } from "../../drizzle/schema";
+import { clientContacts, clientDocuments, clients, passwordVaultEntries, programClientOptions, programClientStatuses } from "../../drizzle/schema";
 import { requireCurrentAccount } from "../account-context";
 import { getDb } from "../db";
 import { listProgramClientStatuses, programClientStatusScope } from "../program-client-statuses";
 import { clientColumnForOption, listProgramClientOptions, programOptionKinds, type ProgramOptionKind } from "../program-client-options";
 import { countProgramOptionUsage, countProgramStatusUsage, getProgramReferenceSummary } from "../program-reference-usage";
-import { getRcCatalogueActivities, getRcCatalogueFamilies, getRcCatalogueSummary, mergeRcCatalogueFromExcel, replaceRcCatalogueFromExcel, resetRcCatalogueToReference } from "../program-rc-catalogue";
+import { archiveRcActivityByCode, archiveRcFamilyByCode, createRcActivity, createRcFamily, getRcCatalogueActivities, getRcCatalogueFamilies, getRcCatalogueSummary, listArchivedRcCatalogueItems, mergeRcCatalogueFromExcel, replaceRcCatalogueFromExcel, resetRcCatalogueToReference, restoreRcActivity, restoreRcFamily, updateRcActivityByCode, updateRcFamilyByCode } from "../program-rc-catalogue";
 import { publicProcedure, router } from "../_core/trpc";
 
 const statusLabel = z.string().trim().min(2, "Le statut doit comporter au moins deux caractères.").max(60, "Le statut est trop long.");
@@ -95,6 +95,10 @@ export const programSettingsRouter = router({
           await tx.update(clients).set({ [column]: input.label } as any).where(and(eq(clients.accountId, account.id), eq((clients as any)[column], current.label)));
         } else if (kind === "vaultCategory") {
           await tx.update(passwordVaultEntries).set({ category: input.label }).where(and(eq(passwordVaultEntries.accountId, account.id), eq(passwordVaultEntries.category, current.label)));
+        } else if (kind === "documentCategory" || kind === "documentStatus") {
+          const column = kind === "documentCategory" ? clientDocuments.category : clientDocuments.status;
+          const owned = await tx.select({ id: clients.id }).from(clients).where(eq(clients.accountId, account.id));
+          if (owned.length) await tx.update(clientDocuments).set({ [kind === "documentCategory" ? "category" : "status"]: input.label } as any).where(and(inArray(clientDocuments.clientId, owned.map(client => client.id)), eq(column, current.label)));
         } else {
           const owned = await tx.select({ id: clients.id }).from(clients).where(eq(clients.accountId, account.id));
           if (owned.length) await tx.update(clientContacts).set({ type: input.label }).where(and(inArray(clientContacts.clientId, owned.map(client => client.id)), eq(clientContacts.type, current.label)));
@@ -127,5 +131,14 @@ export const programSettingsRouter = router({
     replaceFromExcel: publicProcedure.input(z.object({ sourceFilename: z.string().min(5).max(255), entries: z.array(z.object({ code: z.string(), label: z.string() })).min(1).max(10_000) })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return replaceRcCatalogueFromExcel(db, account.id, input.sourceFilename, input.entries); }),
     mergeFromExcel: publicProcedure.input(z.object({ sourceFilename: z.string().min(5).max(255), entries: z.array(z.object({ code: z.string(), label: z.string() })).min(1).max(10_000) })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return mergeRcCatalogueFromExcel(db, account.id, input.sourceFilename, input.entries); }),
     resetToReference: publicProcedure.mutation(async ({ ctx }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return resetRcCatalogueToReference(db, account.id); }),
+    archived: publicProcedure.query(async ({ ctx }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return listArchivedRcCatalogueItems(db, account.id); }),
+    createFamily: publicProcedure.input(z.object({ code: z.string().regex(/^\d{3}$/, "Le code doit comporter trois chiffres."), label: z.string().trim().min(2).max(180) })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return createRcFamily(db, account.id, input.code, input.label); }),
+    updateFamily: publicProcedure.input(z.object({ code: z.string().regex(/^\d{3}$/), label: z.string().trim().min(2).max(180) })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return updateRcFamilyByCode(db, account.id, input.code, input.label); }),
+    archiveFamily: publicProcedure.input(z.object({ code: z.string().regex(/^\d{3}$/) })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return archiveRcFamilyByCode(db, account.id, input.code); }),
+    restoreFamily: publicProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return restoreRcFamily(db, account.id, input.id); }),
+    createActivity: publicProcedure.input(z.object({ familyCode: z.string().regex(/^\d{3}$/), code: z.string().regex(/^\d{6}$/), label: z.string().trim().min(2).max(320) })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return createRcActivity(db, account.id, input.familyCode, input.code, input.label); }),
+    updateActivity: publicProcedure.input(z.object({ code: z.string().regex(/^\d{6}$/), label: z.string().trim().min(2).max(320) })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return updateRcActivityByCode(db, account.id, input.code, input.label); }),
+    archiveActivity: publicProcedure.input(z.object({ code: z.string().regex(/^\d{6}$/) })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return archiveRcActivityByCode(db, account.id, input.code); }),
+    restoreActivity: publicProcedure.input(z.object({ id: z.number().int().positive() })).mutation(async ({ ctx, input }) => { const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); return restoreRcActivity(db, account.id, input.id); }),
   }),
 });

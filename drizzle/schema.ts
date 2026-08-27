@@ -70,6 +70,7 @@ export const passwordVaultEntries = mysqlTable("password_vault_entries", {
 export const clients = mysqlTable("clients", {
   id: int("id").autoincrement().primaryKey(),
   accountId: int("accountId").notNull(),
+  referenceNumber: int("referenceNumber"),
   fullName: varchar("fullName", { length: 220 }).notNull(),
   activity: varchar("activity", { length: 220 }).default(""),
   activityKind: varchar("activityKind", { length: 80 }).default(""),
@@ -90,6 +91,7 @@ export const clients = mysqlTable("clients", {
   taxCenter: varchar("taxCenter", { length: 20 }).default("CDI"),
   cnasAffiliated: boolean("cnasAffiliated").default(false).notNull(),
   casnosAffiliated: boolean("casnosAffiliated").default(false).notNull(),
+  cacobatphAffiliated: boolean("cacobatphAffiliated").default(false).notNull(),
   initialBalance: decimal("initialBalance", { precision: 14, scale: 2 }),
   observations: text("observations"),
   archivedAt: timestamp("archivedAt"),
@@ -97,7 +99,14 @@ export const clients = mysqlTable("clients", {
   purgeAfter: timestamp("purgeAfter"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, table => [index("clients_account_idx").on(table.accountId), index("clients_account_name_idx").on(table.accountId, table.fullName), index("clients_account_archived_name_idx").on(table.accountId, table.archivedAt, table.fullName), index("clients_purge_after_idx").on(table.purgeAfter)]);
+}, table => [index("clients_account_idx").on(table.accountId), uniqueIndex("clients_account_reference_number_unique").on(table.accountId, table.referenceNumber), index("clients_account_name_idx").on(table.accountId, table.fullName), index("clients_account_archived_name_idx").on(table.accountId, table.archivedAt, table.fullName), index("clients_purge_after_idx").on(table.purgeAfter)]);
+
+/** Compteur transactionnel, une ligne par compte, pour les références client non réutilisables. */
+export const clientReferenceCounters = mysqlTable("client_reference_counters", {
+  accountId: int("accountId").primaryKey(),
+  nextReference: int("nextReference").notNull().default(1),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
 
 /** Statuts administrables des dossiers, strictement limités au compte propriétaire. */
 export const programClientStatuses = mysqlTable("program_client_statuses", {
@@ -134,8 +143,23 @@ export const programRcCatalogueEntries = mysqlTable("program_rc_catalogue_entrie
   activityCode: varchar("activityCode", { length: 16 }).notNull(),
   label: varchar("label", { length: 320 }).notNull(),
   sourceFilename: varchar("sourceFilename", { length: 255 }).notNull(),
+  deletedAt: timestamp("deletedAt"),
+  purgeAfter: timestamp("purgeAfter"),
   importedAt: timestamp("importedAt").defaultNow().notNull(),
-}, table => [uniqueIndex("program_rc_catalogue_account_activity_unique").on(table.accountId, table.activityCode), index("program_rc_catalogue_account_family_idx").on(table.accountId, table.familyCode)]);
+}, table => [uniqueIndex("program_rc_catalogue_account_activity_unique").on(table.accountId, table.activityCode), index("program_rc_catalogue_account_family_idx").on(table.accountId, table.familyCode), index("program_rc_catalogue_account_family_deleted_idx").on(table.accountId, table.familyCode, table.deletedAt), index("program_rc_catalogue_purge_after_idx").on(table.purgeAfter)]);
+
+/** Catégories RC du cabinet, administrables indépendamment des activités. */
+export const programRcCatalogueFamilies = mysqlTable("program_rc_catalogue_families", {
+  id: int("id").autoincrement().primaryKey(),
+  accountId: int("accountId").notNull(),
+  code: varchar("code", { length: 10 }).notNull(),
+  label: varchar("label", { length: 180 }).notNull(),
+  sourceFilename: varchar("sourceFilename", { length: 255 }).notNull(),
+  deletedAt: timestamp("deletedAt"),
+  purgeAfter: timestamp("purgeAfter"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [uniqueIndex("program_rc_catalogue_families_account_code_unique").on(table.accountId, table.code), index("program_rc_catalogue_families_account_deleted_idx").on(table.accountId, table.deletedAt), index("program_rc_catalogue_families_purge_after_idx").on(table.purgeAfter)]);
 
 /** Contacts administratifs du dossier. Les valeurs restent limitées au compte propriétaire du client. */
 export const clientContacts = mysqlTable("client_contacts", {
@@ -156,11 +180,31 @@ export const clientDocuments = mysqlTable("client_documents", {
   clientId: int("clientId").notNull(),
   label: varchar("label", { length: 120 }).notNull(),
   category: varchar("category", { length: 100 }).default("Fiscal"),
-  status: mysqlEnum("status", ["Reçu", "À vérifier", "À demander", "Non requis"]).default("À demander").notNull(),
+  status: varchar("status", { length: 100 }).default("À demander").notNull(),
   note: varchar("note", { length: 500 }).default(""),
+  deletedAt: timestamp("deletedAt"),
+  purgeAfter: timestamp("purgeAfter"),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
-}, table => [index("client_documents_client_idx").on(table.clientId)]);
+}, table => [index("client_documents_client_idx").on(table.clientId), index("client_documents_client_deleted_idx").on(table.clientId, table.deletedAt), index("client_documents_purge_after_idx").on(table.purgeAfter)]);
+
+/** Métadonnées des fichiers du dossier. Les octets restent dans le stockage objet sécurisé. */
+export const clientFiles = mysqlTable("client_files", {
+  id: int("id").autoincrement().primaryKey(),
+  accountId: int("accountId").notNull(),
+  clientId: int("clientId").notNull(),
+  documentId: int("documentId"),
+  displayName: varchar("displayName", { length: 180 }).notNull(),
+  category: varchar("category", { length: 100 }).default("Autre").notNull(),
+  originalName: varchar("originalName", { length: 255 }).notNull(),
+  storageKey: varchar("storageKey", { length: 600 }).notNull(),
+  mimeType: varchar("mimeType", { length: 180 }).default("application/octet-stream").notNull(),
+  sizeBytes: int("sizeBytes").notNull(),
+  deletedAt: timestamp("deletedAt"),
+  purgeAfter: timestamp("purgeAfter"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [index("client_files_account_client_deleted_idx").on(table.accountId, table.clientId, table.deletedAt), index("client_files_document_idx").on(table.documentId), index("client_files_purge_after_idx").on(table.purgeAfter)]);
 
 export const clientCompliance = mysqlTable("client_compliance", {
   id: int("id").autoincrement().primaryKey(),
@@ -207,6 +251,7 @@ export const cabinetFinanceEntries = mysqlTable("cabinet_finance_entries", {
   id: int("id").autoincrement().primaryKey(),
   accountId: int("accountId").notNull(),
   clientId: int("clientId"),
+  documentId: int("documentId"),
   entryDate: varchar("entryDate", { length: 30 }).notNull(),
   category: mysqlEnum("category", ["Paiement", "Caisse"]).notNull(),
   direction: mysqlEnum("direction", ["Entrée", "Sortie"]).notNull(),
@@ -216,7 +261,8 @@ export const cabinetFinanceEntries = mysqlTable("cabinet_finance_entries", {
   amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
   note: varchar("note", { length: 500 }).default(""),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
-}, table => [index("cabinet_finance_account_date_idx").on(table.accountId, table.entryDate), index("cabinet_finance_client_idx").on(table.clientId), index("cabinet_finance_account_client_date_idx").on(table.accountId, table.clientId, table.entryDate, table.id)]);
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, table => [index("cabinet_finance_account_date_idx").on(table.accountId, table.entryDate), index("cabinet_finance_client_idx").on(table.clientId), index("cabinet_finance_document_idx").on(table.documentId), index("cabinet_finance_account_client_date_idx").on(table.accountId, table.clientId, table.entryDate, table.id)]);
 
 export const exportAudit = mysqlTable("export_audit", {
   id: int("id").autoincrement().primaryKey(),

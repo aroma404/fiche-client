@@ -8,8 +8,8 @@ describe("registre central des références", () => {
     expect(getProgramReference("vaultCategory")).toMatchObject({ mode: "administrable", scope: "compte", optionKind: "vaultCategory" });
   });
 
-  it("protège le catalogue Registre de commerce fourni", () => {
-    expect(getProgramReference("registreCommerce")).toMatchObject({ source: "catalogue-rc-excel", mode: "lecture-seule", scope: "système" });
+  it("rend le catalogue Registre de commerce administrable dans le seul compte", () => {
+    expect(getProgramReference("registreCommerce")).toMatchObject({ source: "catalogue-rc-excel", mode: "administrable", scope: "compte" });
     expect(programReferenceRegistry.some(reference => reference.id === "registreCommerce")).toBe(true);
   });
 });

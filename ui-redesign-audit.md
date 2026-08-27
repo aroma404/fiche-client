@@ -91,3 +91,7 @@ Le 27 août 2026, la session de contrôle authentifiée a confirmé que Réglage
 Le contrôle alternatif par interaction DOM a ouvert l’onglet Registre de commerce. Le rendu affiche les compteurs du catalogue de référence, la recherche de catégories, la source active et les actions « Choisir le fichier Excel ou CSV », « Ajouter / mettre à jour », « Remplacer complètement » et « Réinitialiser ». Aucun fichier ni donnée n’a été envoyé pendant ce contrôle.
 
 Après redémarrage du serveur, la route Réglages se charge normalement dans la session authentifiée. Les statuts et les trois listes liées aux dossiers sont bien éditables dans l’onglet Dossiers, tandis que le rail principal ne contient pas de lien Réglages. Le passage programmatique vers Registre de commerce est déclenché sans import ni écriture ; l’affichage final du panneau est contrôlé séparément après le cycle de rendu React.
+
+## Contrôle de sécurité avant CRUD RC
+
+Le 27 août 2026, un accès direct à la route privée de Réglages sans session active redirige vers la page publique, sans afficher les référentiels ni les données d’un compte. Aucun dossier ni compte de l’utilisateur n’a été lu, modifié ou supprimé durant ce contrôle.

@@ -7,16 +7,15 @@ import { trpc } from "@/lib/trpc";
 import { useDeferredValue, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 type ClientActivity = ClientDraft["client"];
-const domainChoices = protectedReferenceChoices.activityKind;
-
 export function ActivityFields({ client, onChange }: { client: ClientActivity; onChange: (patch: Partial<ClientActivity>) => void }) {
+  const activityKinds = trpc.programSettings.clientOptions.list.useQuery({ kind: "activityKind" }, { staleTime: 30_000 });
   const familiesQuery = trpc.programSettings.rcCatalogue.families.useQuery(undefined, { staleTime: 5 * 60_000 });
   const activitiesQuery = trpc.programSettings.rcCatalogue.activities.useQuery({ familyCode: client.rcActivityFamily || "000" }, { enabled: client.activityKind === "Registre de commerce" && /^\d{3}$/.test(client.rcActivityFamily), staleTime: 5 * 60_000 });
   const rcFamilies = useMemo(() => (familiesQuery.data ?? []).map(family => ({ code: family.code, label: `${family.code} — ${family.label} · ${family.activityCount} activité(s)` })), [familiesQuery.data]);
   const activities = activitiesQuery.data ?? [];
   const updateKind = (activityKind: ClientActivity["activityKind"]) => onChange({ activityKind, autoEntrepreneurActivity: "", rcActivityFamily: "", rcActivityCode: "" });
   return <div className="grid gap-4 sm:grid-cols-2">
-    <SelectField label="Domaine d’activité" value={client.activityKind} onChange={value => updateKind(value as ClientActivity["activityKind"])} choices={domainChoices} />
+    <SelectField label="Domaine d’activité" value={client.activityKind} onChange={value => updateKind(value as ClientActivity["activityKind"])} choices={(activityKinds.data ?? []).map((item: any) => ({ value: item.label, label: item.label }))} />
     {client.activityKind === "Auto-entrepreneur" ? <SelectField label="Type d’auto-entreprise" value={client.autoEntrepreneurActivity} onChange={value => onChange({ autoEntrepreneurActivity: value as ClientActivity["autoEntrepreneurActivity"] })} choices={protectedReferenceChoices.autoEntrepreneurActivity} /> : null}
     {client.activityKind === "Registre de commerce" ? <>
       <RcCombobox label="Catégorie RC" entries={rcFamilies} value={client.rcActivityFamily} placeholder={familiesQuery.isLoading ? "Chargement du catalogue…" : "Ouvrir puis saisir un code, ex. 101"} disabled={familiesQuery.isLoading} onChange={nextFamily => onChange({ rcActivityFamily: nextFamily, rcActivityCode: "" })} />

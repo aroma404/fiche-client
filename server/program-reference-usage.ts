@@ -10,13 +10,18 @@ export async function countProgramStatusUsage(db: any, accountId: number, label:
 }
 
 export async function countProgramOptionUsage(db: any, accountId: number, kind: AccountOptionKind, label: string) {
-  if (kind === "legalForm" || kind === "clientType" || kind === "regime") {
-    const column = kind === "legalForm" ? clients.legalForm : kind === "clientType" ? clients.clientType : clients.regime;
+  if (kind === "legalForm" || kind === "clientType" || kind === "regime" || kind === "taxCenter" || kind === "activityKind") {
+    const column = kind === "legalForm" ? clients.legalForm : kind === "clientType" ? clients.clientType : kind === "regime" ? clients.regime : kind === "taxCenter" ? clients.taxCenter : clients.activityKind;
     const [result] = await db.select({ value: count() }).from(clients).where(and(eq(clients.accountId, accountId), eq(column, label), isNull(clients.deletedAt)));
     return Number(result?.value ?? 0);
   }
   if (kind === "vaultCategory") {
     const [result] = await db.select({ value: count() }).from(passwordVaultEntries).where(and(eq(passwordVaultEntries.accountId, accountId), eq(passwordVaultEntries.category, label), isNull(passwordVaultEntries.deletedAt)));
+    return Number(result?.value ?? 0);
+  }
+  if (kind === "documentCategory" || kind === "documentStatus") {
+    const column = kind === "documentCategory" ? clientDocuments.category : clientDocuments.status;
+    const [result] = await db.select({ value: count() }).from(clientDocuments).innerJoin(clients, eq(clientDocuments.clientId, clients.id)).where(and(eq(clients.accountId, accountId), eq(column, label), isNull(clientDocuments.deletedAt), isNull(clients.deletedAt)));
     return Number(result?.value ?? 0);
   }
   const [result] = await db.select({ value: count() }).from(clientContacts).innerJoin(clients, eq(clientContacts.clientId, clients.id)).where(and(eq(clients.accountId, accountId), eq(clientContacts.type, label), isNull(clientContacts.deletedAt), isNull(clients.deletedAt)));
@@ -51,9 +56,7 @@ async function countUsageForReference(db: any, accountId: number, id: ProgramRef
 
 function protectedValueCount(id: ProgramReferenceId) {
   if (id === "registreCommerce") return registreCommerceActivities.length;
-  if (id === "activityKind") return protectedReferenceChoices.activityKind.length - 1;
   if (id === "autoEntrepreneurActivity") return protectedReferenceChoices.autoEntrepreneurActivity.length - 1;
-  if (id === "taxCenter") return protectedReferenceChoices.taxCenter.length;
   if (id in protectedReferenceChoices) return protectedReferenceChoices[id as keyof typeof protectedReferenceChoices].length;
   return 0;
 }

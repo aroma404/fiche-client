@@ -24,8 +24,9 @@ describe("feuille Accueil Excel", () => {
     expect(accueil.G6.l?.Target).toBe("#'Fiche 1'!A1");
     expect(accueil["!ref"]).toBe("A1:J10");
     const clientsSheet = workbook.Sheets.Clients;
-    expect(clientsSheet.T5.v).toBe("Oui");
-    expect(clientsSheet.U5.v).toBe("Non");
+    expect(clientsSheet.U5.v).toBe("Oui");
+    expect(clientsSheet.V5.v).toBe("Non");
+    expect(clientsSheet.W5.v).toBe("Non");
     const { BlobReader, TextWriter, ZipReader } = await import("@zip.js/zip.js");
     const zip = new ZipReader(new BlobReader(archive.blob));
     const sheet = (await zip.getEntries()).find(entry => entry.filename === "xl/worksheets/sheet1.xml");

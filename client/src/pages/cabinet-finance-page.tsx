@@ -2,128 +2,50 @@ import { AppSelect } from "@/components/form/app-select";
 import { PageTitle, useWorkspaceClients, WorkspaceLayout } from "@/components/workspace-layout";
 import { formatDA } from "@/lib/client-data";
 import { trpc } from "@/lib/trpc";
-import { ArrowDownRight, ArrowUpRight, Landmark, Plus, ReceiptText, Trash2, UserRound, WalletCards } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, FileText, Landmark, Pencil, Plus, ReceiptText, UserRound, WalletCards } from "lucide-react";
 import { useMemo, useState, type FormEvent, type ReactNode } from "react";
 
-type FinanceForm = {
-  association: "registered" | "external";
-  clientId: string;
-  counterpartyName: string;
-  entryDate: string;
-  category: "Paiement" | "Caisse";
-  direction: "Entrée" | "Sortie";
-  label: string;
-  reference: string;
-  amount: string;
-  note: string;
-};
+type FinanceForm = { association: "registered" | "external"; clientId: string; documentId: string; counterpartyName: string; entryDate: string; category: "Paiement" | "Caisse"; direction: "Entrée" | "Sortie"; label: string; reference: string; amount: string; note: string };
+type FinanceTab = "register" | "payment" | "cash" | "edit";
+const initialForm = (category: "Paiement" | "Caisse" = "Paiement"): FinanceForm => ({ association: "registered", clientId: "none", documentId: "none", counterpartyName: "", entryDate: new Date().toISOString().slice(0, 10), category, direction: "Entrée", label: "", reference: "", amount: "", note: "" });
 
-const initialForm = (): FinanceForm => ({
-  association: "registered",
-  clientId: "",
-  counterpartyName: "",
-  entryDate: new Date().toISOString().slice(0, 10),
-  category: "Paiement",
-  direction: "Entrée",
-  label: "",
-  reference: "",
-  amount: "",
-  note: "",
-});
-
-export function CabinetFinancePage() {
-  return <WorkspaceLayout><CabinetFinanceContent /></WorkspaceLayout>;
-}
+export function CabinetFinancePage() { return <WorkspaceLayout><CabinetFinanceContent /></WorkspaceLayout>; }
 
 function CabinetFinanceContent() {
   const { clients } = useWorkspaceClients();
   const utils = trpc.useUtils();
   const entriesQuery = trpc.cabinetFinance.list.useQuery();
+  const statistics = trpc.cabinetFinance.statistics.useQuery(undefined, { staleTime: 30_000 });
+  const [activeTab, setActiveTab] = useState<FinanceTab>("register");
   const [form, setForm] = useState<FinanceForm>(initialForm);
-  const create = trpc.cabinetFinance.create.useMutation({
-    onSuccess: async () => {
-      setForm(initialForm());
-      await Promise.all([utils.cabinetFinance.list.invalidate(), utils.clients.get.invalidate()]);
-    },
-  });
-  const remove = trpc.cabinetFinance.remove.useMutation({
-    onSuccess: () => void Promise.all([utils.cabinetFinance.list.invalidate(), utils.clients.get.invalidate()]),
-  });
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const selectedClientId = form.clientId === "none" ? 0 : Number(form.clientId);
+  const documentsInput = useMemo(() => ({ clientId: selectedClientId || 1 }), [selectedClientId]);
+  const documentsQuery = trpc.cabinetFinance.clientDocuments.useQuery(documentsInput, { enabled: form.category === "Paiement" && form.association === "registered" && selectedClientId > 0, staleTime: 30_000 });
+  const refresh = async () => { await Promise.all([utils.cabinetFinance.list.invalidate(), utils.cabinetFinance.statistics.invalidate(), utils.clients.get.invalidate()]); };
+  const create = trpc.cabinetFinance.create.useMutation({ onSuccess: async () => { setForm(initialForm()); setActiveTab("register"); await refresh(); } });
+  const update = trpc.cabinetFinance.update.useMutation({ onSuccess: async () => { setEditingId(null); setForm(initialForm()); setActiveTab("register"); await refresh(); } });
   const entries = entriesQuery.data ?? [];
-  const clientNames = useMemo(() => new Map(clients.map(client => [client.id, client.fullName])), [clients]);
+  const clientNames = useMemo(() => new Map(clients.map(client => [client.id, { name: client.fullName, reference: client.referenceNumber }])), [clients]);
   const incoming = entries.filter(entry => entry.direction === "Entrée").reduce((sum, entry) => sum + Number(entry.amount), 0);
   const outgoing = entries.filter(entry => entry.direction === "Sortie").reduce((sum, entry) => sum + Number(entry.amount), 0);
   const cashBalance = entries.filter(entry => entry.category === "Caisse").reduce((sum, entry) => sum + (entry.direction === "Entrée" ? Number(entry.amount) : -Number(entry.amount)), 0);
   const isPayment = form.category === "Paiement";
-  const hasPaymentParty = !isPayment || (form.association === "registered" ? Boolean(form.clientId) : Boolean(form.counterpartyName.trim()));
+  const hasPaymentParty = !isPayment || (form.association === "registered" ? form.clientId !== "none" : Boolean(form.counterpartyName.trim()));
+  const documentOptions = [{ value: "none", label: "Aucun document lié" }, ...(documentsQuery.data ?? []).map(document => ({ value: String(document.id), label: `${document.label} · ${document.status}` }))];
+  const clientOptions = [{ value: "none", label: "Choisir un dossier" }, ...clients.filter(client => !client.archivedAt).map(client => ({ value: String(client.id), label: `${client.referenceNumber ? `#${String(client.referenceNumber).padStart(3, "0")} · ` : ""}${client.fullName}` }))];
+  const toPayload = () => ({ clientId: isPayment && form.association === "registered" && form.clientId !== "none" ? Number(form.clientId) : null, documentId: isPayment && form.association === "registered" && form.documentId !== "none" ? Number(form.documentId) : null, counterpartyName: isPayment && form.association === "external" ? form.counterpartyName.trim() : "", entryDate: form.entryDate, category: form.category, direction: form.direction, label: form.label.trim(), reference: form.reference.trim(), amount: Number(form.amount), note: form.note.trim() });
+  const submit = (event: FormEvent) => { event.preventDefault(); const amount = Number(form.amount); if (!form.label.trim() || !Number.isFinite(amount) || amount <= 0 || !hasPaymentParty) return; if (editingId) update.mutate({ entryId: editingId, entry: toPayload() }); else create.mutate(toPayload()); };
+  const startCreate = (category: "Paiement" | "Caisse") => { setEditingId(null); setForm(initialForm(category)); setActiveTab(category === "Paiement" ? "payment" : "cash"); };
+  const startEdit = (entry: typeof entries[number]) => { setEditingId(entry.id); setForm({ association: entry.clientId ? "registered" : "external", clientId: entry.clientId ? String(entry.clientId) : "none", documentId: entry.documentId ? String(entry.documentId) : "none", counterpartyName: entry.counterpartyName || "", entryDate: entry.entryDate, category: entry.category, direction: entry.direction, label: entry.label, reference: entry.reference || "", amount: String(entry.amount), note: entry.note || "" }); setActiveTab("edit"); };
+  const tabs: { id: FinanceTab; label: string; disabled?: boolean }[] = [{ id: "register", label: "Registre" }, { id: "payment", label: "Nouveau paiement" }, { id: "cash", label: "Nouvelle caisse" }, { id: "edit", label: editingId ? "Modifier le mouvement" : "Modifier", disabled: !editingId }];
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    const amount = Number(form.amount);
-    if (!form.label.trim() || !Number.isFinite(amount) || amount <= 0 || !hasPaymentParty) return;
-    create.mutate({
-      clientId: isPayment && form.association === "registered" ? Number(form.clientId) : null,
-      counterpartyName: isPayment && form.association === "external" ? form.counterpartyName.trim() : "",
-      entryDate: form.entryDate,
-      category: form.category,
-      direction: form.direction,
-      label: form.label.trim(),
-      reference: form.reference.trim(),
-      amount,
-      note: form.note.trim(),
-    });
-  };
-
-  return <>
-    <PageTitle eyebrow="Trésorerie de votre cabinet" title="Finances du cabinet" description="Enregistrez chaque paiement soit dans un dossier existant, soit au nom d’un client non enregistré. Les observations restent internes et ne sont jamais affichées dans le registre enregistré." />
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_380px]">
-      <section className="order-2 rounded-2xl border border-[#d5dfdc] bg-white p-5 lg:order-1">
-        <div className="grid gap-3 sm:grid-cols-3">
-          <Metric icon={ArrowDownRight} label="Encaissements" value={formatDA(incoming)} tone="teal" />
-          <Metric icon={ArrowUpRight} label="Décaissements" value={formatDA(outgoing)} tone="gold" />
-          <Metric icon={WalletCards} label="Solde de caisse" value={formatDA(cashBalance)} tone="navy" />
-        </div>
-        <div className="mt-7 overflow-x-auto rounded-xl border border-[#d5dfdc]">
-          <table className="w-full min-w-[760px] text-left text-sm">
-            <thead className="bg-[#f7faf8] text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#627785]"><tr>{["Date", "Client / tiers", "Nature", "Libellé", "Sens", "Montant", ""].map(label => <th key={label || "action"} className="px-4 py-3">{label}</th>)}</tr></thead>
-            <tbody>
-              {entriesQuery.isLoading ? <tr><td colSpan={7} className="px-4 py-8 text-center text-sm text-[#627785]">Préparation du registre…</td></tr> : null}
-              {!entriesQuery.isLoading && !entries.length ? <tr><td colSpan={7} className="px-4 py-10 text-center text-sm text-[#627785]">Aucune opération enregistrée. Ajoutez une première ligne depuis le formulaire.</td></tr> : null}
-              {entries.map(entry => <tr key={entry.id} className="border-t border-[#edf1f0]">
-                <td className="px-4 py-3 text-[#627785]">{entry.entryDate}</td>
-                <td className="px-4 py-3 font-semibold">{entry.clientId ? clientNames.get(entry.clientId) ?? "Client archivé" : entry.counterpartyName || "Cabinet"}</td>
-                <td className="px-4 py-3"><span className="rounded-full bg-[#edf4f1] px-2 py-1 text-xs font-bold text-[#0f766e]">{entry.category}</span></td>
-                <td className="px-4 py-3"><p className="font-bold">{entry.label}</p>{entry.reference ? <p className="mt-0.5 text-xs text-[#627785]">{entry.reference}</p> : null}</td>
-                <td className={`px-4 py-3 font-bold ${entry.direction === "Entrée" ? "text-[#0f766e]" : "text-[#a1433d]"}`}>{entry.direction}</td>
-                <td className="px-4 py-3 font-extrabold">{formatDA(Number(entry.amount))}</td>
-                <td className="px-4 py-3"><button onClick={() => remove.mutate({ entryId: entry.id })} disabled={remove.isPending} aria-label="Supprimer l’opération" className="rounded-md p-2 text-[#a1433d] hover:bg-[#fff2ef] disabled:opacity-50"><Trash2 size={16} /></button></td>
-              </tr>)}
-            </tbody>
-          </table>
-        </div>
-      </section>
-      <form onSubmit={submit} className="order-1 rounded-2xl border border-[#c8ddd5] bg-[#edf7f3] p-5 lg:order-2">
-        <div className="flex items-start gap-3"><span className="rounded-xl bg-white p-2.5 text-[#0f766e]"><Landmark size={20} /></span><div><h2 className="font-serif text-2xl text-[#102a43]">Nouvelle opération</h2><p className="mt-1 text-sm leading-5 text-[#627785]">Le lien vers le bon dossier ou tiers est choisi avant l’enregistrement.</p></div></div>
-        <div className="mt-6 space-y-4">
-          <div className="grid grid-cols-2 gap-3"><Field label="Date"><input type="date" value={form.entryDate} onChange={event => setForm({ ...form, entryDate: event.target.value })} /></Field><Field label="Nature"><AppSelect value={form.category} onValueChange={value => setForm({ ...form, category: value as FinanceForm["category"], association: value === "Caisse" ? "registered" : form.association, clientId: value === "Caisse" ? "" : form.clientId, counterpartyName: value === "Caisse" ? "" : form.counterpartyName })} options={[{ value: "Paiement", label: "Paiement" }, { value: "Caisse", label: "Caisse" }]} /></Field></div>
-          {isPayment ? <section className="border border-[#b9d9ce] bg-white/70 p-3"><p className="ui-label">Rattachement du paiement</p><div className="mt-3 grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => setForm({ ...form, association: "registered", counterpartyName: "" })} className={`flex min-h-16 items-center gap-2 border p-3 text-left text-sm font-bold ${form.association === "registered" ? "border-[#0f766e] bg-[#eaf6f1] text-[#0f766e]" : "border-[#d5dfdc] bg-white text-[#526872]"}`}><UserRound size={16} />Dossier client</button><button type="button" onClick={() => setForm({ ...form, association: "external", clientId: "" })} className={`flex min-h-16 items-center gap-2 border p-3 text-left text-sm font-bold ${form.association === "external" ? "border-[#0f766e] bg-[#eaf6f1] text-[#0f766e]" : "border-[#d5dfdc] bg-white text-[#526872]"}`}><ReceiptText size={16} />Client non enregistré</button></div>{form.association === "registered" ? <div className="mt-3"><Field label="Dossier associé"><AppSelect value={form.clientId} onValueChange={value => setForm({ ...form, clientId: value })} options={[{ value: "", label: "Choisir un dossier" }, ...clients.filter(client => !client.archivedAt).map(client => ({ value: String(client.id), label: client.fullName }))]} /></Field></div> : <div className="mt-3"><Field label="Nom du client non enregistré"><input value={form.counterpartyName} onChange={event => setForm({ ...form, counterpartyName: event.target.value })} placeholder="Nom ou raison sociale" /></Field></div>}</section> : <p className="border-l-[3px] border-[#0f766e] bg-white/70 p-3 text-xs leading-5 text-[#526872]">Mouvement interne de caisse du cabinet : aucun dossier ni tiers externe n’est requis.</p>}
-          <div className="grid grid-cols-2 gap-3"><Field label="Sens"><AppSelect value={form.direction} onValueChange={value => setForm({ ...form, direction: value as FinanceForm["direction"] })} options={[{ value: "Entrée", label: "Entrée" }, { value: "Sortie", label: "Sortie" }]} /></Field><Field label="Montant (DA)"><input type="number" min="0" step="0.01" value={form.amount} onChange={event => setForm({ ...form, amount: event.target.value })} placeholder="0,00" /></Field></div>
-          <Field label="Libellé"><input value={form.label} onChange={event => setForm({ ...form, label: event.target.value })} placeholder="Ex. règlement, dépense, caisse" /></Field>
-          <Field label="Référence"><input value={form.reference} onChange={event => setForm({ ...form, reference: event.target.value })} placeholder="Facultative" /></Field>
-          <Field label="Observation interne"><textarea value={form.note} onChange={event => setForm({ ...form, note: event.target.value })} placeholder="Précision facultative, non affichée dans le registre" /></Field>
-        </div>
-        <button disabled={create.isPending || !form.label.trim() || !form.amount || !hasPaymentParty} className="mt-6 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#0f766e] px-4 text-sm font-bold text-white disabled:opacity-55"><Plus size={17} />{create.isPending ? "Enregistrement…" : "Ajouter au registre"}</button>
-        {create.error ? <p className="mt-3 rounded-lg bg-[#fff2ef] p-3 text-sm font-semibold text-[#a1433d]">{create.error.message}</p> : null}
-      </form>
-    </div>
-  </>;
+  return <><PageTitle eyebrow="Trésorerie de votre cabinet" title="Finances du cabinet" description="Enregistrez les paiements des dossiers ou d’un tiers occasionnel. Les observations sont internes et restent absentes du registre affiché." /><nav aria-label="Actions financières" className="mb-6 flex gap-1 overflow-x-auto border-b border-[#d7e0df]">{tabs.map(tab => <button key={tab.id} type="button" disabled={tab.disabled} onClick={() => { if (tab.id === "payment") startCreate("Paiement"); else if (tab.id === "cash") startCreate("Caisse"); else setActiveTab(tab.id); }} className={`shrink-0 border-b-2 px-3 py-3 text-sm font-bold disabled:cursor-not-allowed disabled:opacity-35 ${activeTab === tab.id ? "border-[#0b625e] text-[#0b625e]" : "border-transparent text-[#627785] hover:text-[#182b3a]"}`}>{tab.label}</button>)}</nav>
+    {activeTab === "register" ? <section className="ui-sheet p-5 sm:p-6"><div className="grid gap-3 sm:grid-cols-3"><Metric icon={ArrowDownRight} label="Encaissements" value={formatDA(incoming)} tone="teal" /><Metric icon={ArrowUpRight} label="Décaissements" value={formatDA(outgoing)} tone="gold" /><Metric icon={WalletCards} label="Solde de caisse" value={formatDA(cashBalance)} tone="navy" /></div><ClientStats statistics={statistics.data} /><div className="mt-7 overflow-x-auto border border-[#d5dfdc] bg-[#fffefa]"><table className="w-full min-w-[860px] text-left text-sm"><thead className="bg-[#f1f5ef] text-[10px] font-extrabold uppercase tracking-[0.1em] text-[#627785]"><tr>{["Date", "Client / tiers", "Nature", "Libellé", "Document", "Sens", "Montant", ""].map(label => <th key={label || "action"} className="px-4 py-3">{label}</th>)}</tr></thead><tbody>{entriesQuery.isLoading ? <tr><td colSpan={8} className="px-4 py-8 text-center text-sm text-[#627785]">Préparation du registre…</td></tr> : null}{!entriesQuery.isLoading && !entries.length ? <tr><td colSpan={8} className="px-4 py-10 text-center text-sm text-[#627785]">Aucune opération enregistrée. Utilisez les onglets de création pour ajouter une première ligne.</td></tr> : null}{entries.map(entry => { const client = entry.clientId ? clientNames.get(entry.clientId) : null; return <tr key={entry.id} className="border-t border-[#edf1f0]"><td className="px-4 py-3 text-[#627785]">{entry.entryDate}</td><td className="px-4 py-3 font-semibold">{client ? <><span className="mr-1 text-xs text-[#0b625e]">{client.reference ? `#${String(client.reference).padStart(3, "0")}` : ""}</span>{client.name}</> : entry.counterpartyName || "Cabinet"}</td><td className="px-4 py-3"><span className="border border-[#c8dbd3] bg-[#edf4f1] px-2 py-1 text-xs font-bold text-[#0f766e]">{entry.category}</span></td><td className="px-4 py-3"><p className="font-bold">{entry.label}</p>{entry.reference ? <p className="mt-0.5 text-xs text-[#627785]">{entry.reference}</p> : null}</td><td className="px-4 py-3 text-xs font-semibold text-[#526872]">{entry.documentId ? "Document lié" : "—"}</td><td className={`px-4 py-3 font-bold ${entry.direction === "Entrée" ? "text-[#0f766e]" : "text-[#a1433d]"}`}>{entry.direction}</td><td className="px-4 py-3 font-extrabold">{formatDA(Number(entry.amount))}</td><td className="px-4 py-3"><button type="button" onClick={() => startEdit(entry)} aria-label="Modifier l’opération" className="inline-flex h-9 items-center gap-1 border border-[#bdd2ca] px-2 text-xs font-bold text-[#0b625e]"><Pencil size={14} /> Modifier</button></td></tr>; })}</tbody></table></div></section> : <form onSubmit={submit} className="ui-sheet max-w-5xl p-5 sm:p-6"><div className="flex items-start gap-3 border-b border-[#dce3dc] pb-5"><span className="grid h-10 w-10 shrink-0 place-items-center border border-[#b8d2c7] bg-[#eaf3ee] text-[#0b625e]"><Landmark size={19} /></span><div><p className="ui-label">{editingId ? "Mise à jour contrôlée" : form.category === "Paiement" ? "Nouveau paiement" : "Nouvelle caisse"}</p><h2 className="mt-2 font-serif text-3xl text-[#182b3a]">{editingId ? "Modifier le mouvement" : form.category === "Paiement" ? "Enregistrer un paiement" : "Enregistrer un mouvement de caisse"}</h2><p className="mt-1 text-sm text-[#63737d]">{form.category === "Paiement" ? "Reliez le paiement à un dossier, à un document facultatif, ou à un tiers occasionnel." : "Mouvement interne du cabinet, sans client ni document requis."}</p></div></div><div className="mt-6 grid gap-5 md:grid-cols-2"><Field label="Date"><input type="date" value={form.entryDate} onChange={event => setForm({ ...form, entryDate: event.target.value })} /></Field><Field label="Sens"><AppSelect value={form.direction} onValueChange={value => setForm({ ...form, direction: value as FinanceForm["direction"] })} options={[{ value: "Entrée", label: "Entrée" }, { value: "Sortie", label: "Sortie" }]} /></Field>{isPayment ? <div className="md:col-span-2 border border-[#b9d9ce] bg-[#f4faf7] p-4"><p className="ui-label">Rattachement du paiement</p><div className="mt-3 grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => setForm({ ...form, association: "registered", counterpartyName: "" })} className={`flex min-h-14 items-center gap-2 border p-3 text-left text-sm font-bold ${form.association === "registered" ? "border-[#0f766e] bg-[#eaf6f1] text-[#0f766e]" : "border-[#d5dfdc] bg-white text-[#526872]"}`}><UserRound size={16} />Dossier client</button><button type="button" onClick={() => setForm({ ...form, association: "external", clientId: "none", documentId: "none" })} className={`flex min-h-14 items-center gap-2 border p-3 text-left text-sm font-bold ${form.association === "external" ? "border-[#0f766e] bg-[#eaf6f1] text-[#0f766e]" : "border-[#d5dfdc] bg-white text-[#526872]"}`}><ReceiptText size={16} />Tiers occasionnel</button></div>{form.association === "registered" ? <div className="mt-4 grid gap-4 md:grid-cols-2"><Field label="Dossier associé"><AppSelect value={form.clientId} onValueChange={value => setForm({ ...form, clientId: value, documentId: "none" })} options={clientOptions} /></Field><Field label="Document associé"><AppSelect value={form.documentId} onValueChange={value => setForm({ ...form, documentId: value })} disabled={form.clientId === "none" || documentsQuery.isLoading} options={documentOptions} /></Field></div> : <div className="mt-4"><Field label="Nom du tiers occasionnel"><input value={form.counterpartyName} onChange={event => setForm({ ...form, counterpartyName: event.target.value })} placeholder="Nom ou raison sociale" /></Field></div>}</div> : <div className="md:col-span-2 border-l-[3px] border-[#0b625e] bg-[#f4faf7] p-4 text-sm leading-6 text-[#526872]">Mouvement interne de caisse du cabinet : aucun dossier ni tiers occasionnel n’est requis.</div>}<Field label="Montant (DA)"><input type="number" min="0" step="0.01" value={form.amount} onChange={event => setForm({ ...form, amount: event.target.value })} placeholder="0,00" /></Field><Field label="Libellé"><input value={form.label} onChange={event => setForm({ ...form, label: event.target.value })} placeholder="Ex. règlement, dépense, caisse" /></Field><Field label="Référence"><input value={form.reference} onChange={event => setForm({ ...form, reference: event.target.value })} placeholder="Facultative" /></Field><Field label="Observation interne"><textarea value={form.note} onChange={event => setForm({ ...form, note: event.target.value })} placeholder="Précision interne, non affichée dans le registre" /></Field></div><div className="mt-6 flex flex-col-reverse gap-3 border-t border-[#dce3dc] pt-5 sm:flex-row sm:justify-end"><button type="button" onClick={() => { setEditingId(null); setForm(initialForm()); setActiveTab("register"); }} className="ui-action ui-action--quiet">Annuler</button><button disabled={create.isPending || update.isPending || !form.label.trim() || !form.amount || !hasPaymentParty} className="ui-action"><Plus size={17} />{editingId ? (update.isPending ? "Enregistrement…" : "Enregistrer les modifications") : create.isPending ? "Enregistrement…" : "Ajouter au registre"}</button></div>{create.error || update.error ? <p className="mt-4 border-l-[3px] border-[#ad4339] bg-[#fff0ed] p-3 text-sm font-semibold text-[#a1433d]">{create.error?.message || update.error?.message}</p> : null}</form>}</>;
 }
 
-function Field({ label, children }: { label: string; children: ReactNode }) {
-  return <label className="block"><span className="ui-label">{label}</span><span className="mt-2 block [&_input]:h-11 [&_input]:w-full [&_input]:rounded-none [&_input]:border [&_input]:border-[#c7d8d3] [&_input]:bg-[#fffefa] [&_input]:px-3 [&_textarea]:min-h-24 [&_textarea]:w-full [&_textarea]:rounded-none [&_textarea]:border [&_textarea]:border-[#c7d8d3] [&_textarea]:bg-[#fffefa] [&_textarea]:p-3">{children}</span></label>;
-}
-
-function Metric({ icon: Icon, label, value, tone }: { icon: typeof Landmark; label: string; value: string; tone: "teal" | "gold" | "navy" }) {
-  const classes = { teal: "border-t-[#0b625e] bg-[#e8f4ef] text-[#0b625e]", gold: "border-t-[#d29a3e] bg-[#fff7df] text-[#795b1d]", navy: "border-t-[#182b3a] bg-[#182b3a] text-white" };
-  return <div className={`border-t-2 p-4 ${classes[tone]}`}><Icon size={18} /><p className="mt-4 text-[10px] font-extrabold uppercase tracking-[.08em] opacity-75">{label}</p><p className="mt-1 font-serif text-2xl">{value}</p></div>;
-}
+function ClientStats({ statistics }: { statistics?: { day: StatPeriod; month: StatPeriod; year: StatPeriod } }) { if (!statistics) return null; return <section className="mt-5 border-y border-[#dce3dc] py-4"><p className="ui-label">Indicateurs client</p><div className="mt-3 grid gap-3 xl:grid-cols-3"><StatCard label="Aujourd’hui" value={statistics.day} /><StatCard label="Ce mois" value={statistics.month} /><StatCard label="Cette année" value={statistics.year} /></div></section>; }
+type StatPeriod = { mostTreated: { fullName: string; referenceNumber: number | null; count: number } | null; bestPayer: { fullName: string; referenceNumber: number | null; total: number } | null };
+function StatCard({ label, value }: { label: string; value: StatPeriod }) { const reference = (number: number | null) => number ? `#${String(number).padStart(3, "0")} · ` : ""; return <div className="border-l-[3px] border-[#d29a3e] bg-[#fffaf0] p-3"><p className="text-xs font-extrabold uppercase tracking-[.08em] text-[#795b1d]">{label}</p><p className="mt-3 text-xs font-semibold text-[#63737d]">Client le plus traité</p><p className="truncate text-sm font-bold text-[#182b3a]">{value.mostTreated ? `${reference(value.mostTreated.referenceNumber)}${value.mostTreated.fullName} · ${value.mostTreated.count}` : "Aucune donnée"}</p><p className="mt-3 text-xs font-semibold text-[#63737d]">Meilleur payeur</p><p className="truncate text-sm font-bold text-[#0b625e]">{value.bestPayer ? `${reference(value.bestPayer.referenceNumber)}${value.bestPayer.fullName} · ${formatDA(value.bestPayer.total)}` : "Aucune donnée"}</p></div>; }
+function Field({ label, children }: { label: string; children: ReactNode }) { return <label className="block"><span className="ui-label">{label}</span><span className="mt-2 block [&_input]:h-11 [&_input]:w-full [&_input]:border [&_input]:border-[#c7d8d3] [&_input]:bg-[#fffefa] [&_input]:px-3 [&_textarea]:min-h-24 [&_textarea]:w-full [&_textarea]:border [&_textarea]:border-[#c7d8d3] [&_textarea]:bg-[#fffefa] [&_textarea]:p-3">{children}</span></label>; }
+function Metric({ icon: Icon, label, value, tone }: { icon: typeof Landmark; label: string; value: string; tone: "teal" | "gold" | "navy" }) { const classes = { teal: "border-t-[#0b625e] bg-[#e8f4ef] text-[#0b625e]", gold: "border-t-[#d29a3e] bg-[#fff7df] text-[#795b1d]", navy: "border-t-[#182b3a] bg-[#182b3a] text-white" }; return <div className={`border-t-2 p-4 ${classes[tone]}`}><Icon size={18} /><p className="mt-4 text-[10px] font-extrabold uppercase tracking-[.08em] opacity-75">{label}</p><p className="mt-1 font-serif text-2xl">{value}</p></div>; }

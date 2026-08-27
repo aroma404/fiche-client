@@ -65,7 +65,7 @@ suite("isolation persistante A/B", () => {
     await expect(callerA.get({ clientId: clientA })).resolves.toMatchObject({ client: { id: clientA, accountId: accountA, cnasAffiliated: true, casnosAffiliated: false } });
     await expect(callerB.get({ clientId: clientA })).rejects.toThrow("Client introuvable.");
     await expect(callerB.saveBundle({ clientId: clientA, data: { client: { fullName: "Tentative B" }, documents: [], compliance: [], cases: [], payments: [], cashEntries: [] } })).rejects.toThrow("Client introuvable.");
-    await expect(callerB.archive({ clientId: clientA })).resolves.toEqual({ success: true });
+    await expect(callerB.archive({ clientId: clientA })).rejects.toThrow("Client introuvable.");
     await expect(getOwnedClient(accountA, clientA)).resolves.not.toBeNull();
     await expect(getOwnedClient(accountB, clientA)).resolves.toBeNull();
   });
@@ -99,15 +99,15 @@ suite("isolation persistante A/B", () => {
   it("isole les opérations financières du cabinet entre les comptes", async () => {
     const tokenA = await signAccountSession(accountA, sessionA); const tokenB = await signAccountSession(accountB, sessionB);
     const financeA = cabinetFinanceRouter.createCaller(contextFor(tokenA)); const financeB = cabinetFinanceRouter.createCaller(contextFor(tokenB));
-    await expect(clientsRouter.createCaller(contextFor(tokenA)).saveBundle({ clientId: clientA, data: { client: { fullName: "Dossier isolé A" }, documents: [], compliance: [], cases: [], payments: [], cashEntries: [], financeEntries: [{ entryDate: "2026-08-24", category: "Caisse", direction: "Entrée", label: "Opération depuis la fiche", reference: "FICHE", amount: 80, note: "Test de propagation" }] } })).resolves.toEqual({ success: true });
+    await expect(financeA.create({ clientId: clientA, entryDate: "2026-08-24", category: "Caisse", direction: "Entrée", label: "Opération depuis la fiche", reference: "FICHE", amount: 80, note: "Test de propagation" })).resolves.toEqual(expect.objectContaining({ entryId: expect.any(Number) }));
     await expect(financeA.list({ clientId: clientA })).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ category: "Caisse", label: "Opération depuis la fiche", amount: "80.00" })]));
     const created = await financeA.create({ clientId: clientA, entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", label: "Règlement isolé", reference: "ITEST", amount: 1200, note: "Test nettoyé automatiquement" });
     const external = await financeA.create({ clientId: null, counterpartyName: "Tiers de test non enregistré", entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", label: "Règlement externe", reference: "EXT", amount: 900, note: "Observation interne" });
     await expect(financeA.create({ clientId: null, counterpartyName: "", entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", label: "Paiement invalide", reference: "", amount: 1, note: "" })).rejects.toThrow("Choisissez un dossier ou indiquez le nom");
     await expect(financeA.list()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: external.entryId, clientId: null, counterpartyName: "Tiers de test non enregistré", label: "Règlement externe", note: "Observation interne" })]));
     await expect(financeB.list()).resolves.toEqual([]);
-    await expect(financeB.create({ clientId: clientA, entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", label: "Tentative B", reference: "", amount: 1, note: "" })).rejects.toThrow("Client introuvable.");
-    await expect(financeB.remove({ entryId: created.entryId })).resolves.toEqual({ success: true });
+    await expect(financeB.create({ clientId: clientA, entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", label: "Tentative B", reference: "", amount: 1, note: "" })).rejects.toThrow("Client introuvable ou archivé.");
+    await expect(financeB.update({ entryId: created.entryId, entry: { clientId: null, entryDate: "2026-08-25", category: "Paiement", direction: "Entrée", counterpartyName: "Tiers B", label: "Tentative B", reference: "", amount: 1, note: "" } })).rejects.toThrow("Mouvement introuvable.");
     await expect(financeA.list({ clientId: clientA })).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: created.entryId, accountId: accountA, clientId: clientA })]));
     await expect(transfersRouter.createCaller(contextFor(tokenA)).exportData({ format: "json", scope: "selected", clientIds: [clientA] })).resolves.toMatchObject({ clients: [expect.objectContaining({ client: expect.objectContaining({ id: clientA }), financeEntries: expect.arrayContaining([expect.objectContaining({ category: "Caisse", label: "Opération depuis la fiche", amount: "80.00" }), expect.objectContaining({ id: created.entryId, category: "Paiement", amount: "1200.00" })]) })] });
   });

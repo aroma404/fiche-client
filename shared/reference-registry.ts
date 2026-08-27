@@ -2,22 +2,23 @@ export type RegistryScope = "compte" | "utilisateur" | "système";
 export type RegistrySource = "statuts" | "options-compte" | "valeurs-protégées" | "catalogue-rc-excel";
 export type RegistryMode = "administrable" | "lecture-seule";
 
-export const accountOptionKinds = ["legalForm", "clientType", "regime", "contactType", "vaultCategory"] as const;
+export const accountOptionKinds = ["legalForm", "clientType", "regime", "taxCenter", "activityKind", "contactType", "vaultCategory", "documentCategory", "documentStatus"] as const;
 export type AccountOptionKind = typeof accountOptionKinds[number];
 
 export const accountOptionDefaults: Record<AccountOptionKind, readonly { code: string; label: string }[]> = {
   legalForm: [{ code: "physical", label: "Personne physique" }, { code: "legal", label: "Personne morale" }],
   clientType: [{ code: "new", label: "Nouveau client" }, { code: "former", label: "Ancien client" }],
   regime: [{ code: "real", label: "Régime réel" }, { code: "simplified", label: "Régime réel simplifié" }, { code: "ifu", label: "Régime IFU" }],
+  taxCenter: [{ code: "cdi", label: "CDI" }, { code: "cpi", label: "CPI" }],
+  activityKind: [{ code: "farmer", label: "Agriculteur" }, { code: "craft", label: "Artisanat" }, { code: "self-employed", label: "Auto-entrepreneur" }, { code: "rc", label: "Registre de commerce" }],
   contactType: [{ code: "phone", label: "Téléphone" }, { code: "email", label: "E-mail" }, { code: "other", label: "Autre" }],
   vaultCategory: [{ code: "fiscal", label: "Fiscal" }, { code: "banking", label: "Bancaire" }, { code: "administration", label: "Administration" }, { code: "social", label: "Réseaux sociaux" }, { code: "other", label: "Autre" }],
+  documentCategory: [{ code: "identity", label: "Identité" }, { code: "fiscal", label: "Fiscal" }, { code: "accounting", label: "Comptabilité" }, { code: "social", label: "Social" }, { code: "other", label: "Autre" }],
+  documentStatus: [{ code: "received", label: "Reçu" }, { code: "review", label: "À vérifier" }, { code: "requested", label: "À demander" }, { code: "not-required", label: "Non requis" }],
 };
 
 export const protectedReferenceChoices = {
-  activityKind: [{ value: "", label: "Choisir le domaine" }, { value: "Agriculture", label: "Agriculture" }, { value: "Artisanat", label: "Artisanat" }, { value: "Auto-entrepreneur", label: "Auto-entrepreneur" }, { value: "Registre de commerce", label: "Registre de commerce" }],
   autoEntrepreneurActivity: [{ value: "", label: "Choisir une option" }, { value: "Micro-importation", label: "Micro-importation" }, { value: "Prestation de services", label: "Prestation de services" }],
-  taxCenter: [{ value: "CDI", label: "CDI" }, { value: "CPI", label: "CPI" }],
-  documentStatus: [{ value: "Reçu", label: "Reçu" }, { value: "À vérifier", label: "À vérifier" }, { value: "À demander", label: "À demander" }, { value: "Non requis", label: "Non requis" }],
   financeCategory: [{ value: "Paiement", label: "Paiement" }, { value: "Caisse", label: "Caisse" }],
   financeDirection: [{ value: "Entrée", label: "Entrée" }, { value: "Sortie", label: "Sortie" }],
   preferredExportFormat: [{ value: "xlsx", label: "Classeur Excel" }, { value: "json", label: "Archive JSON" }],
@@ -29,7 +30,7 @@ export type ProgramReferenceDefinition = {
   id: string;
   title: string;
   description: string;
-  group: "Dossiers" | "Référentiels" | "Activité" | "Finance" | "Compte" | "Transferts";
+  group: "Dossiers" | "Référentiels" | "Activité" | "Documents" | "Finance" | "Compte" | "Transferts";
   scope: RegistryScope;
   source: RegistrySource;
   mode: RegistryMode;
@@ -42,13 +43,14 @@ export const programReferenceRegistry: readonly ProgramReferenceDefinition[] = [
   { id: "legalForm", title: "Formes juridiques", description: "Valeurs proposées dans l’identité fiscale du dossier.", group: "Référentiels", scope: "compte", source: "options-compte", mode: "administrable", optionKind: "legalForm", usageLabel: "dossiers" },
   { id: "clientType", title: "Types de client", description: "Qualification commerciale du dossier.", group: "Référentiels", scope: "compte", source: "options-compte", mode: "administrable", optionKind: "clientType", usageLabel: "dossiers" },
   { id: "regime", title: "Régimes fiscaux", description: "Références fiscales proposées dans chaque fiche.", group: "Référentiels", scope: "compte", source: "options-compte", mode: "administrable", optionKind: "regime", usageLabel: "dossiers" },
+  { id: "taxCenter", title: "Centres d’impôt", description: "Centres proposés dans les fiches client.", group: "Référentiels", scope: "compte", source: "options-compte", mode: "administrable", optionKind: "taxCenter", usageLabel: "dossiers" },
+  { id: "activityKind", title: "Domaines d’activité", description: "Domaines proposés pour qualifier un dossier.", group: "Activité", scope: "compte", source: "options-compte", mode: "administrable", optionKind: "activityKind", usageLabel: "dossiers" },
   { id: "contactType", title: "Types de contact", description: "Nature des coordonnées ajoutées à un dossier.", group: "Référentiels", scope: "compte", source: "options-compte", mode: "administrable", optionKind: "contactType", usageLabel: "contacts" },
   { id: "vaultCategory", title: "Catégories d’accès", description: "Classement des identifiants chiffrés du dossier.", group: "Référentiels", scope: "compte", source: "options-compte", mode: "administrable", optionKind: "vaultCategory", usageLabel: "accès chiffrés" },
-  { id: "activityKind", title: "Domaines d’activité", description: "Domaine professionnel encadré du dossier.", group: "Activité", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "dossiers" },
+  { id: "documentCategory", title: "Catégories de document", description: "Classement des justificatifs, dont C20.", group: "Documents", scope: "compte", source: "options-compte", mode: "administrable", optionKind: "documentCategory", usageLabel: "documents" },
+  { id: "documentStatus", title: "Statuts de document", description: "États proposés pour les justificatifs.", group: "Documents", scope: "compte", source: "options-compte", mode: "administrable", optionKind: "documentStatus", usageLabel: "documents" },
   { id: "autoEntrepreneurActivity", title: "Activités d’auto-entrepreneur", description: "Sous-types autorisés pour les auto-entrepreneurs.", group: "Activité", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "dossiers" },
-  { id: "registreCommerce", title: "Registre de commerce", description: "Catégories et activités strictement issues du catalogue Excel du cabinet.", group: "Activité", scope: "système", source: "catalogue-rc-excel", mode: "lecture-seule", usageLabel: "dossiers" },
-  { id: "taxCenter", title: "Centres d’impôt", description: "Centres proposés dans les fiches, réglables dossier par dossier.", group: "Référentiels", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "dossiers" },
-  { id: "documentStatus", title: "Statuts documentaires", description: "États contrôlés des justificatifs.", group: "Référentiels", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "documents" },
+  { id: "registreCommerce", title: "Registre de commerce", description: "Catégories et activités administrées par le cabinet.", group: "Activité", scope: "compte", source: "catalogue-rc-excel", mode: "administrable", usageLabel: "dossiers" },
   { id: "financeCategory", title: "Natures financières", description: "Catégories protégées du registre financier.", group: "Finance", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "opérations" },
   { id: "financeDirection", title: "Sens financier", description: "Entrée ou sortie du registre financier.", group: "Finance", scope: "système", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "opérations" },
   { id: "preferredExportFormat", title: "Format d’export préféré", description: "Préférence personnelle conservée dans Mon compte.", group: "Compte", scope: "utilisateur", source: "valeurs-protégées", mode: "lecture-seule", usageLabel: "préférences" },

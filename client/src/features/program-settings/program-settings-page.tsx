@@ -4,28 +4,28 @@ import { AccountProgramNav } from "@/features/account/account-program-nav";
 import { RcCatalogueManager } from "@/features/program-settings/rc-catalogue-manager";
 import { trpc } from "@/lib/trpc";
 import { programReferenceRegistry, type AccountOptionKind, type ProgramReferenceDefinition } from "@shared/reference-registry";
-import { registreCommerceActivities, registreCommerceFamilies } from "@shared/registre-commerce-activities";
-import { ArchiveRestore, BookOpenCheck, FileSearch, FolderCog, KeyRound, ListChecks, LockKeyhole, Plus, Save, Settings2, Tag, Trash2, UsersRound } from "lucide-react";
+import { BookOpenCheck, FolderCog, ListChecks, Plus, Save, Settings2, Trash2 } from "lucide-react";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
-import { Link } from "wouter";
 
 type ProgramStatus = { id: number; label: string; isOperational: boolean; usageCount?: number };
 type ProgramOption = { id: number; code: string; label: string; usageCount?: number };
 type ReferenceSummary = ProgramReferenceDefinition & { valueCount: number; usageCount: number; catalogueFamilies?: number };
-type SettingsTab = "dossiers" | "listes" | "registre-rc" | "archives";
+type SettingsTab = "dossiers" | "listes" | "registre-rc";
 
 const optionSections = programReferenceRegistry.filter(reference => reference.optionKind).map(reference => ({ kind: reference.optionKind as AccountOptionKind, eyebrow: reference.group, title: reference.title, hint: reference.description }));
 const tabs: { id: SettingsTab; label: string; icon: typeof FolderCog }[] = [
   { id: "dossiers", label: "Dossiers", icon: FolderCog },
   { id: "listes", label: "Listes du cabinet", icon: ListChecks },
   { id: "registre-rc", label: "Registre de commerce", icon: BookOpenCheck },
-  { id: "archives", label: "Archives", icon: ArchiveRestore },
 ];
 
 export function ProgramSettingsPage() {
   const utils = trpc.useUtils();
   const statuses = trpc.programSettings.clientStatuses.list.useQuery(undefined, { staleTime: 30_000 });
   const referenceRegistry = trpc.programSettings.referenceRegistry.list.useQuery(undefined, { staleTime: 30_000 });
+  const archivedStatuses = trpc.programSettings.clientStatuses.archived.useQuery(undefined, { staleTime: 30_000 });
+  const archivedOptions = trpc.programSettings.clientOptions.archived.useQuery(undefined, { staleTime: 30_000 });
+  const archivedRc = trpc.programSettings.rcCatalogue.archived.useQuery(undefined, { staleTime: 30_000 });
   const [activeTab, setActiveTab] = useState<SettingsTab>("dossiers");
   const [newLabel, setNewLabel] = useState("");
   const [newOperational, setNewOperational] = useState(true);
@@ -35,8 +35,8 @@ export function ProgramSettingsPage() {
   const createStatus = trpc.programSettings.clientStatuses.create.useMutation({ onSuccess: async () => { setNewLabel(""); setStatusMessage("Statut ajouté."); await refresh(); } });
   const addStatus = async (event: FormEvent) => { event.preventDefault(); setStatusMessage(""); try { await createStatus.mutateAsync({ label: newLabel, isOperational: newOperational }); } catch (error) { setStatusMessage(error instanceof Error ? error.message : "Création impossible."); } };
   const references = (referenceRegistry.data ?? []) as ReferenceSummary[];
-  const dossierOptions = optionSections.filter(section => ["legalForm", "clientType", "regime"].includes(section.kind));
-  const organisationOptions = optionSections.filter(section => !["legalForm", "clientType", "regime"].includes(section.kind));
+  const dossierOptions = optionSections.filter(section => ["legalForm", "clientType", "regime", "taxCenter", "activityKind"].includes(section.kind));
+  const organisationOptions = optionSections.filter(section => !["legalForm", "clientType", "regime", "taxCenter", "activityKind"].includes(section.kind));
 
   return <WorkspaceLayout>
     <PageTitle eyebrow="Configuration du cabinet" title="Réglages du programme" description="Gérez les listes et le catalogue utilisés par votre cabinet." />
@@ -49,9 +49,8 @@ export function ProgramSettingsPage() {
       <section className="grid gap-5 2xl:grid-cols-3">{dossierOptions.map(section => <ClientOptionSection key={section.kind} {...section} />)}</section>
     </section> : null}
 
-    {activeTab === "listes" ? <section className="space-y-5"><SettingsHeader icon={<ListChecks size={19} />} eyebrow="Listes utilisées" title="Contacts et accès" text="Ces valeurs alimentent les listes déroulantes des contacts et du coffre du client." /><section className="grid gap-5 2xl:grid-cols-2">{organisationOptions.map(section => <ClientOptionSection key={section.kind} {...section} />)}</section><ReferenceControlList references={references} loading={referenceRegistry.isLoading} /></section> : null}
+    {activeTab === "listes" ? <section className="space-y-5"><SettingsHeader icon={<ListChecks size={19} />} eyebrow="Listes utilisées" title="Contacts, accès et documents" text="Ces valeurs alimentent les listes déroulantes réellement utilisées dans les dossiers." /><section className="grid gap-5 2xl:grid-cols-2">{organisationOptions.map(section => <ClientOptionSection key={section.kind} {...section} />)}</section><RetentionPanel statuses={archivedStatuses.data ?? []} options={archivedOptions.data ?? []} rcFamilies={archivedRc.data?.families ?? []} rcActivities={archivedRc.data?.activities ?? []} loading={archivedStatuses.isLoading || archivedOptions.isLoading || archivedRc.isLoading} /><ReferenceControlList references={references} loading={referenceRegistry.isLoading} /></section> : null}
     {activeTab === "registre-rc" ? <RcCatalogueManager /> : null}
-    {activeTab === "archives" ? <section className="space-y-5"><SettingsHeader icon={<ArchiveRestore size={19} />} eyebrow="Conservation" title="Éléments archivés" text="Les valeurs retirées restent récupérables pendant 30 jours avant la purge définitive." /><section className="ui-sheet flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6"><div><p className="font-serif text-2xl text-[#182b3a]">Archives du cabinet</p><p className="mt-2 text-sm leading-6 text-[#63737d]">Restaurez les dossiers, contacts, statuts et valeurs administratives encore disponibles.</p></div><Link href="/archives" className="ui-action shrink-0"><ArchiveRestore size={17} /> Ouvrir les Archives</Link></section></section> : null}
   </WorkspaceLayout>;
 }
 
@@ -64,12 +63,9 @@ function ReferenceControlList({ references, loading }: { references: ReferenceSu
   return <section className="ui-sheet p-5 sm:p-6"><div className="flex items-start gap-3"><span className="grid h-10 w-10 place-items-center border border-[#d9c483] bg-[#fff7df] text-[#87661e]"><Settings2 size={19} /></span><div><p className="ui-label">Contrôles</p><h2 className="mt-2 font-serif text-3xl text-[#182b3a]">Usage des référentiels</h2><p className="mt-1 text-sm leading-6 text-[#63737d]">Vérifiez les valeurs utilisées avant de les archiver.</p></div></div><div className="mt-5 divide-y divide-[#dce3dc] border-y border-[#dce3dc]">{references.filter(reference => reference.scope !== "utilisateur").map(reference => <div key={reference.id} className="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><div className="min-w-0"><p className="font-bold text-[#182b3a]">{reference.title}</p><p className="mt-1 text-xs text-[#63737d]">{reference.mode === "administrable" ? "Valeurs modifiables dans cet espace" : "Référentiel contrôlé"}</p></div><span className="self-center text-xs font-bold text-[#526872]">{reference.valueCount} valeur(s)</span><span className="self-center text-xs font-bold text-[#0b625e]">{reference.usageCount} utilisée(s)</span></div>)}</div></section>;
 }
 
-function RcCataloguePanel({ references }: { references: ReferenceSummary[] }) {
-  const [query, setQuery] = useState("");
-  const normalized = query.trim().toLocaleLowerCase("fr");
-  const families = useMemo(() => registreCommerceFamilies.filter(family => !normalized || `${family.code} ${family.label}`.toLocaleLowerCase("fr").includes(normalized)).slice(0, 30), [normalized]);
-  const rc = references.find(reference => reference.id === "registreCommerce");
-  return <section className="space-y-5"><SettingsHeader icon={<BookOpenCheck size={19} />} eyebrow="Nomenclature d’activité" title="Registre de commerce" text="Recherchez, contrôlez et mettez à jour le catalogue uniquement à partir du fichier Excel autorisé." /><section className="ui-sheet p-5 sm:p-6"><div className="grid grid-cols-3 gap-px border border-[#d8e2dc] bg-[#d8e2dc]"><Metric label="Catégories" value={String(registreCommerceFamilies.length)} /><Metric label="Activités" value={String(registreCommerceActivities.length)} tone="teal" /><Metric label="Dossiers liés" value={String(rc?.usageCount ?? 0)} /></div><label className="mt-5 flex h-11 items-center gap-2 border border-[#c7d8d3] bg-white px-3 text-[#63737d]"><FileSearch size={17} className="text-[#0b625e]" /><input value={query} onChange={event => setQuery(event.target.value)} className="min-w-0 flex-1 bg-transparent text-sm text-[#182b3a] outline-none" placeholder="Rechercher une catégorie RC…" /></label><div className="mt-4 max-h-80 overflow-y-auto border-y border-[#dce3dc]">{families.map(family => <div key={family.code} className="grid grid-cols-[4.5rem_1fr_auto] gap-3 border-b border-[#e7ece8] px-1 py-3 last:border-b-0"><span className="font-serif text-xl text-[#0b625e]">{family.code}</span><span className="min-w-0 text-sm font-bold text-[#182b3a]">{family.label}</span><span className="text-xs font-semibold text-[#63737d]">{family.activityCount} activité(s)</span></div>)}{!families.length ? <p className="p-4 text-sm text-[#63737d]">Aucune catégorie ne correspond.</p> : null}</div></section><section className="border-l-[3px] border-[#d29a3e] bg-[#fff9e8] p-4 text-sm leading-6 text-[#765d27]"><p className="font-bold">Mise à jour du catalogue</p><p className="mt-1">L’ajout, la modification ou le remplacement se fera à partir d’un fichier Excel contrôlé dans cette rubrique. Les valeurs saisies librement ne seront pas acceptées.</p></section></section>;
+function RetentionPanel({ statuses, options, rcFamilies, rcActivities, loading }: { statuses: { id: number; label: string; deletedAt: Date | string | null; purgeAfter: Date | string | null }[]; options: { id: number; label: string; kind: string; deletedAt: Date | string | null; purgeAfter: Date | string | null }[]; rcFamilies: { id: number; code: string; label: string; purgeAfter: Date | string | null }[]; rcActivities: { id: number; code: string; familyCode: string; label: string; purgeAfter: Date | string | null }[]; loading: boolean }) {
+  const entries = [...statuses.map(item => ({ id: `status-${item.id}`, label: item.label, type: "Statut", purgeAfter: item.purgeAfter })), ...options.map(item => ({ id: `option-${item.id}`, label: item.label, type: "Liste", purgeAfter: item.purgeAfter })), ...rcFamilies.map(item => ({ id: `rc-family-${item.id}`, label: `${item.code} — ${item.label}`, type: "Catégorie RC", purgeAfter: item.purgeAfter })), ...rcActivities.map(item => ({ id: `rc-activity-${item.id}`, label: `${item.code} — ${item.label}`, type: "Activité RC", purgeAfter: item.purgeAfter }))].sort((left, right) => String(left.purgeAfter).localeCompare(String(right.purgeAfter)));
+  return <section className="ui-sheet p-5 sm:p-6"><div className="flex items-start gap-3"><span className="grid h-10 w-10 place-items-center border border-[#d9c483] bg-[#fff7df] text-[#87661e]"><Trash2 size={18} /></span><div><p className="ui-label">Conservation</p><h2 className="mt-2 font-serif text-3xl text-[#182b3a]">Éléments retirés</h2><p className="mt-1 text-sm text-[#63737d]">La suppression définitive avant l’échéance est interdite : aucun élément ne peut être purgé plus tôt.</p></div></div>{loading ? <LoadingLine text="Calcul de la rétention…" /> : entries.length ? <div className="mt-5 divide-y divide-[#dce3dc] border-y border-[#dce3dc]">{entries.map(entry => { const end = entry.purgeAfter ? new Date(entry.purgeAfter) : null; const days = end ? Math.max(0, Math.ceil((end.getTime() - Date.now()) / 86_400_000)) : 0; return <div key={entry.id} className="grid gap-1 py-3 sm:grid-cols-[minmax(0,1fr)_auto_auto]"><div><p className="font-bold text-[#182b3a]">{entry.label}</p><p className="text-xs text-[#63737d]">{entry.type} · suppression anticipée impossible</p></div><span className="text-xs font-bold text-[#87661e]">{days} jour(s) restant(s)</span><span className="text-xs font-semibold text-[#63737d]">Fin : {end ? end.toLocaleDateString("fr-DZ") : "Échéance inconnue"}</span></div>; })}</div> : <p className="mt-5 border border-dashed border-[#cbd9d5] bg-[#f7faf6] p-4 text-sm text-[#63737d]">Aucun élément retiré du programme.</p>}</section>;
 }
 
 function ClientOptionSection({ kind, title, eyebrow, hint }: { kind: AccountOptionKind; title: string; eyebrow: string; hint: string }) {

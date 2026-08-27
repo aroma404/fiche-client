@@ -1,7 +1,7 @@
 /** Atelier fiscal moderne — accès base de données et opérations sécurisées liées au compte. */
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { accounts, cabinetFinanceEntries, clientCashEntries, clientCompliance, clientContacts, clientDocuments, clientPayments, clients, clientWorkCases, InsertUser, users } from "../drizzle/schema";
+import { accounts, cabinetFinanceEntries, clientCashEntries, clientCompliance, clientContacts, clientDocuments, clientFiles, clientPayments, clients, clientWorkCases, InsertUser, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -116,14 +116,15 @@ export async function getClientBundle(accountId: number, clientId: number) {
   if (!db) throw new Error("La base de données est indisponible.");
   const client = await getOwnedClient(accountId, clientId);
   if (!client) return null;
-  const [documents, payments, cashEntries, financeEntries, contacts] = await Promise.all([
-    db.select().from(clientDocuments).where(eq(clientDocuments.clientId, clientId)),
+  const [documents, files, payments, cashEntries, financeEntries, contacts] = await Promise.all([
+    db.select().from(clientDocuments).where(and(eq(clientDocuments.clientId, clientId), isNull(clientDocuments.deletedAt))),
+    db.select({ id: clientFiles.id, accountId: clientFiles.accountId, clientId: clientFiles.clientId, documentId: clientFiles.documentId, displayName: clientFiles.displayName, category: clientFiles.category, originalName: clientFiles.originalName, mimeType: clientFiles.mimeType, sizeBytes: clientFiles.sizeBytes, createdAt: clientFiles.createdAt, updatedAt: clientFiles.updatedAt }).from(clientFiles).where(and(eq(clientFiles.accountId, accountId), eq(clientFiles.clientId, clientId), isNull(clientFiles.deletedAt))),
     db.select().from(clientPayments).where(eq(clientPayments.clientId, clientId)),
     db.select().from(clientCashEntries).where(eq(clientCashEntries.clientId, clientId)),
     db.select().from(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.clientId, clientId), eq(cabinetFinanceEntries.accountId, accountId))),
     db.select().from(clientContacts).where(and(eq(clientContacts.clientId, clientId), isNull(clientContacts.deletedAt))),
   ]);
-  return { client, documents, payments, cashEntries, financeEntries, contacts };
+  return { client, documents, files, payments, cashEntries, financeEntries, contacts };
 }
 
 export async function getClientBundles(accountId: number, clientIds?: number[]) {
@@ -133,8 +134,9 @@ export async function getClientBundles(accountId: number, clientIds?: number[]) 
   const owned = await db.select().from(clients).where(filter);
   if (!owned.length) return [];
   const ownedIds = owned.map(client => client.id);
-  const [documents, payments, cashEntries, financeEntries, contacts] = await Promise.all([
-    db.select().from(clientDocuments).where(inArray(clientDocuments.clientId, ownedIds)),
+  const [documents, files, payments, cashEntries, financeEntries, contacts] = await Promise.all([
+    db.select().from(clientDocuments).where(and(inArray(clientDocuments.clientId, ownedIds), isNull(clientDocuments.deletedAt))),
+    db.select({ id: clientFiles.id, accountId: clientFiles.accountId, clientId: clientFiles.clientId, documentId: clientFiles.documentId, displayName: clientFiles.displayName, category: clientFiles.category, originalName: clientFiles.originalName, mimeType: clientFiles.mimeType, sizeBytes: clientFiles.sizeBytes, createdAt: clientFiles.createdAt, updatedAt: clientFiles.updatedAt }).from(clientFiles).where(and(eq(clientFiles.accountId, accountId), inArray(clientFiles.clientId, ownedIds), isNull(clientFiles.deletedAt))),
     db.select().from(clientPayments).where(inArray(clientPayments.clientId, ownedIds)),
     db.select().from(clientCashEntries).where(inArray(clientCashEntries.clientId, ownedIds)),
     db.select().from(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.accountId, accountId), inArray(cabinetFinanceEntries.clientId, ownedIds))),
@@ -145,6 +147,7 @@ export async function getClientBundles(accountId: number, clientIds?: number[]) 
     return groups;
   }, new Map<number, T[]>());
   const documentsByClient = groupByClient(documents);
+  const filesByClient = groupByClient(files);
   const paymentsByClient = groupByClient(payments);
   const cashEntriesByClient = groupByClient(cashEntries);
   const financeEntriesByClient = groupByClient(financeEntries);
@@ -152,6 +155,7 @@ export async function getClientBundles(accountId: number, clientIds?: number[]) 
   return owned.map(client => ({
     client,
     documents: documentsByClient.get(client.id) ?? [],
+    files: filesByClient.get(client.id) ?? [],
     payments: paymentsByClient.get(client.id) ?? [],
     cashEntries: cashEntriesByClient.get(client.id) ?? [],
     financeEntries: financeEntriesByClient.get(client.id) ?? [],

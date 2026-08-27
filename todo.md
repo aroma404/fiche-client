@@ -165,4 +165,4 @@
 - [x] Ajouter l’archivage d’un client directement dans le registre clients.
 - [x] Retirer l’import Excel RC et déplacer le Registre de commerce vers une page de premier niveau.
 - [x] Réorganiser la navigation directe autour de Dossiers, Registre de commerce et Mon compte.
-- [ ] Valider les protections de purge, les parcours et la synchronisation GitHub.
+- [x] Valider les protections de purge, les parcours et la synchronisation GitHub.

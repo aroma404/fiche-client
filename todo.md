@@ -139,3 +139,4 @@
 - [x] Simplifier le formulaire Contacts de Fiche à deux champs : type Téléphone/E-mail et coordonnée.
 - [x] Harmoniser les actions enregistrées de chaque contact avec le design system, sans champs ou boutons superflus.
 - [x] Vérifier la persistance, les liens d’action et le responsive du nouveau panneau Contacts.
+- [x] Synchroniser le journal Git complet et tous les changements validés avec le dépôt GitHub connecté.

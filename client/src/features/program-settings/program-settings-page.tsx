@@ -4,6 +4,7 @@ import { trpc } from "@/lib/trpc";
 import { programReferenceRegistry, type AccountOptionKind, type ProgramReferenceDefinition } from "@shared/reference-registry";
 import { BookOpenCheck, FolderCog, ListChecks, Plus, Save, Settings2, Trash2 } from "lucide-react";
 import { RcCatalogueManager } from "./rc-catalogue-manager";
+import { AccountProgramNav } from "@/features/account/account-program-nav";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 type ProgramStatus = { id: number; label: string; isOperational: boolean; usageCount?: number };
@@ -36,7 +37,7 @@ export function ProgramSettingsPage() {
   const organisationOptions = optionSections.filter(section => !["legalForm", "clientType", "regime", "taxCenter", "activityKind"].includes(section.kind));
 
   return <WorkspaceLayout>
-    <PageTitle eyebrow="Configuration du cabinet" title="Réglages du programme" description="Gérez les listes et le catalogue utilisés par votre cabinet." />
+    <PageTitle eyebrow="Configuration du cabinet" title="Réglages du programme" description="Gérez les listes et le catalogue utilisés par votre cabinet." /><AccountProgramNav />
     <nav aria-label="Sections des réglages" className="mb-6 flex gap-1 overflow-x-auto border-b border-[#d7e0df]">{tabs.map(tab => { const Icon = tab.icon; const active = activeTab === tab.id; return <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-bold ${active ? "border-[#0b625e] text-[#0b625e]" : "border-transparent text-[#627785] hover:text-[#182b3a]"}`}><Icon size={16} />{tab.label}</button>; })}</nav>
 
     {activeTab === "dossiers" ? <section className="space-y-5">

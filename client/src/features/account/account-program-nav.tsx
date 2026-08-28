@@ -1,8 +1,10 @@
-import { UserRound, Users } from "lucide-react";
+import { BookOpenCheck, Settings2, UserRound, Users } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const tabs = [
   { href: "/clients", label: "Dossiers", icon: Users },
+  { href: "/registre-commerce", label: "Registre de commerce", icon: BookOpenCheck },
+  { href: "/reglages", label: "Réglages du programme", icon: Settings2 },
   { href: "/compte", label: "Mon compte", icon: UserRound },
 ] as const;
 

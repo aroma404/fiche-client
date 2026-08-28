@@ -182,3 +182,8 @@
 - [x] إضافة رابط واضح وفعّال إلى صفحة Registre de commerce من إعدادات البرنامج والتنقل المناسب.
 - [x] إعادة أقسام Dossiers وMon compte وبقية أقسام مساحة البرنامج داخل إعدادات البرنامج دون حذف المسارات أو المكونات.
 - [x] اختبار جميع روابط التنقل ثم حفظ الإصلاح ومزامنته مع GitHub.
+
+- [x] استبدال رابط Dossiers في شريط إعدادات البرنامج بتبويب Statuts et informations client.
+- [x] عرض Contacts, accès et documents وSuppression et délai وRegistre de commerce بجوار التبويب الأول وعلى نفس مستوى Mon compte.
+- [x] إزالة عنوان Registre de commerce المكرر والإبقاء على كتلة تعريفية واحدة فقط.
+- [x] اختبار التنقل والتبويبات ثم حفظ ومزامنة التعديل مع GitHub.

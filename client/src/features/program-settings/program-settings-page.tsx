@@ -37,8 +37,7 @@ export function ProgramSettingsPage() {
   const organisationOptions = optionSections.filter(section => !["legalForm", "clientType", "regime", "taxCenter", "activityKind"].includes(section.kind));
 
   return <WorkspaceLayout>
-    <PageTitle eyebrow="Configuration du cabinet" title="Réglages du programme" description="Gérez les listes et le catalogue utilisés par votre cabinet." /><AccountProgramNav />
-    <nav aria-label="Sections des réglages" className="mb-6 flex gap-1 overflow-x-auto border-b border-[#d7e0df]">{tabs.map(tab => { const Icon = tab.icon; const active = activeTab === tab.id; return <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-bold ${active ? "border-[#0b625e] text-[#0b625e]" : "border-transparent text-[#627785] hover:text-[#182b3a]"}`}><Icon size={16} />{tab.label}</button>; })}</nav>
+    <PageTitle eyebrow="Configuration du cabinet" title="Réglages du programme" description="Gérez les listes et le catalogue utilisés par votre cabinet." /><AccountProgramNav settingsTab={activeTab} onSettingsTabChange={setActiveTab} />
 
     {activeTab === "dossiers" ? <section className="space-y-5">
       <SettingsHeader icon={<FolderCog size={19} />} eyebrow="Référentiels des dossiers" title="Statuts et informations client" text="Modifiez les valeurs réellement utilisées lors de la création et du suivi des dossiers." />
@@ -48,7 +47,7 @@ export function ProgramSettingsPage() {
 
     {activeTab === "listes" ? <section className="space-y-5"><SettingsHeader icon={<ListChecks size={19} />} eyebrow="Listes utilisées" title="Contacts, accès et documents" text="Ces valeurs alimentent les listes déroulantes réellement utilisées dans les dossiers." /><section className="grid gap-5 2xl:grid-cols-2">{organisationOptions.map(section => <ClientOptionSection key={section.kind} {...section} />)}</section><ReferenceControlList references={references} loading={referenceRegistry.isLoading} /></section> : null}
     {activeTab === "conservation" ? <ArchivePolicySettings /> : null}
-    {activeTab === "commerce" ? <section className="space-y-5"><SettingsHeader icon={<BookOpenCheck size={19} />} eyebrow="Nomenclature d’activité" title="Registre de commerce" text="Ajoutez, modifiez ou archivez les catégories et activités utilisées par votre cabinet." /><RcCatalogueManager /></section> : null}
+    {activeTab === "commerce" ? <RcCatalogueManager /> : null}
   </WorkspaceLayout>;
 }
 

@@ -187,3 +187,7 @@
 - [x] عرض Contacts, accès et documents وSuppression et délai وRegistre de commerce بجوار التبويب الأول وعلى نفس مستوى Mon compte.
 - [x] إزالة عنوان Registre de commerce المكرر والإبقاء على كتلة تعريفية واحدة فقط.
 - [x] اختبار التنقل والتبويبات ثم حفظ ومزامنة التعديل مع GitHub.
+
+- [x] توحيد ارتفاع لوحتي Activités de la catégorie واللوحة المجاورة في Registre de commerce.
+- [x] إعادة تنسيق Règle de conservation du compte / Suppression et délai ليطابق تصميم الإعدادات العام.
+- [x] التحقق البصري والبرمجي ثم حفظ المزامنة مع GitHub.

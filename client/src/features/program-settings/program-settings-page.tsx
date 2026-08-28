@@ -2,7 +2,7 @@ import { AppSelect } from "@/components/form/app-select";
 import { PageTitle, WorkspaceLayout } from "@/components/workspace-layout";
 import { trpc } from "@/lib/trpc";
 import { programReferenceRegistry, type AccountOptionKind, type ProgramReferenceDefinition } from "@shared/reference-registry";
-import { BookOpenCheck, FolderCog, ListChecks, Plus, Save, Settings2, Trash2 } from "lucide-react";
+import { FolderCog, ListChecks, Plus, Save, Settings2, Trash2 } from "lucide-react";
 import { RcCatalogueManager } from "./rc-catalogue-manager";
 import { AccountProgramNav } from "@/features/account/account-program-nav";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
@@ -13,18 +13,11 @@ type ReferenceSummary = ProgramReferenceDefinition & { valueCount: number; usage
 type SettingsTab = "dossiers" | "listes" | "conservation" | "commerce";
 
 const optionSections = programReferenceRegistry.filter(reference => reference.optionKind).map(reference => ({ kind: reference.optionKind as AccountOptionKind, eyebrow: reference.group, title: reference.title, hint: reference.description }));
-const tabs: { id: SettingsTab; label: string; icon: typeof FolderCog }[] = [
-  { id: "dossiers", label: "Dossiers", icon: FolderCog },
-  { id: "listes", label: "Listes du cabinet", icon: ListChecks },
-  { id: "conservation", label: "Suppression et délai", icon: Trash2 },
-  { id: "commerce", label: "Nomenclature d’activité", icon: BookOpenCheck },
-];
-
 export function ProgramSettingsPage() {
   const utils = trpc.useUtils();
   const statuses = trpc.programSettings.clientStatuses.list.useQuery(undefined, { staleTime: 30_000 });
   const referenceRegistry = trpc.programSettings.referenceRegistry.list.useQuery(undefined, { staleTime: 30_000 });
-  const [activeTab, setActiveTab] = useState<SettingsTab>("dossiers");
+  const [activeTab, setActiveTab] = useState<SettingsTab>(() => { const requested = new URLSearchParams(window.location.search).get("tab"); return requested === "listes" || requested === "conservation" || requested === "commerce" ? requested : "dossiers"; });
   const [newLabel, setNewLabel] = useState("");
   const [newOperational, setNewOperational] = useState(true);
   const [statusMessage, setStatusMessage] = useState("");

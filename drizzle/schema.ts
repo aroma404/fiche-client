@@ -110,6 +110,13 @@ export const clientReferenceCounters = mysqlTable("client_reference_counters", {
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
 
+/** Compteur transactionnel par dossier client : les références financières sont locales au client. */
+export const clientTransactionCounters = mysqlTable("client_transaction_counters", {
+  clientId: int("clientId").primaryKey(),
+  nextReference: int("nextReference").notNull().default(1),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
 /** Statuts administrables des dossiers, strictement limités au compte propriétaire. */
 export const programClientStatuses = mysqlTable("program_client_statuses", {
   id: int("id").autoincrement().primaryKey(),
@@ -183,6 +190,7 @@ export const clientDocuments = mysqlTable("client_documents", {
   label: varchar("label", { length: 120 }).notNull(),
   category: varchar("category", { length: 100 }).default("Fiscal"),
   status: varchar("status", { length: 100 }).default("À demander").notNull(),
+  paymentDone: boolean("paymentDone").default(false).notNull(),
   note: varchar("note", { length: 500 }).default(""),
   deletedAt: timestamp("deletedAt"),
   purgeAfter: timestamp("purgeAfter"),
@@ -260,6 +268,7 @@ export const cabinetFinanceEntries = mysqlTable("cabinet_finance_entries", {
   counterpartyName: varchar("counterpartyName", { length: 220 }).default("").notNull(),
   label: varchar("label", { length: 180 }).notNull(),
   reference: varchar("reference", { length: 160 }).default(""),
+  clientTransactionReference: int("clientTransactionReference"),
   amount: decimal("amount", { precision: 14, scale: 2 }).notNull(),
   note: varchar("note", { length: 500 }).default(""),
   deletedAt: timestamp("deletedAt"),

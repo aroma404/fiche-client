@@ -166,3 +166,9 @@
 - [x] Retirer l’import Excel RC et déplacer le Registre de commerce vers une page de premier niveau.
 - [x] Réorganiser la navigation directe autour de Dossiers, Registre de commerce et Mon compte.
 - [x] Valider les protections de purge, les parcours et la synchronisation GitHub.
+
+- [x] جعل مرجع كل حركة مالية مرتبطة بالعميل تسلسليًا داخل ذلك العميل بدءًا من 001، مع فصل حركات المكتب غير المرتبطة.
+- [x] إضافة حقل مستقل «Paiement effectué» للوثائق بقيم Oui/Non، وربطه تلقائيًا بالدفعة المرتبطة.
+- [x] مراجعة واجهات الدفعات والوثائق والطباعة والتصدير وفق العقد الجديد.
+- [x] إضافة اختبارات المرجع المعاملي وحالة دفع الوثيقة ثم التحقق والمزامنة مع GitHub.
+- [x] توثيق الفرق العملي بين Enregistrer un paiement وEnregistrer un mouvement de caisse في الواجهة.

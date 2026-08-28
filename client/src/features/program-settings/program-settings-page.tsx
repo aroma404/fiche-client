@@ -2,18 +2,21 @@ import { AppSelect } from "@/components/form/app-select";
 import { PageTitle, WorkspaceLayout } from "@/components/workspace-layout";
 import { trpc } from "@/lib/trpc";
 import { programReferenceRegistry, type AccountOptionKind, type ProgramReferenceDefinition } from "@shared/reference-registry";
-import { FolderCog, ListChecks, Plus, Save, Settings2, Trash2 } from "lucide-react";
+import { BookOpenCheck, FolderCog, ListChecks, Plus, Save, Settings2, Trash2 } from "lucide-react";
+import { RcCatalogueManager } from "./rc-catalogue-manager";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 type ProgramStatus = { id: number; label: string; isOperational: boolean; usageCount?: number };
 type ProgramOption = { id: number; code: string; label: string; usageCount?: number };
 type ReferenceSummary = ProgramReferenceDefinition & { valueCount: number; usageCount: number; catalogueFamilies?: number };
-type SettingsTab = "dossiers" | "listes";
+type SettingsTab = "dossiers" | "listes" | "conservation" | "commerce";
 
 const optionSections = programReferenceRegistry.filter(reference => reference.optionKind).map(reference => ({ kind: reference.optionKind as AccountOptionKind, eyebrow: reference.group, title: reference.title, hint: reference.description }));
 const tabs: { id: SettingsTab; label: string; icon: typeof FolderCog }[] = [
   { id: "dossiers", label: "Dossiers", icon: FolderCog },
   { id: "listes", label: "Listes du cabinet", icon: ListChecks },
+  { id: "conservation", label: "Suppression et délai", icon: Trash2 },
+  { id: "commerce", label: "Nomenclature d’activité", icon: BookOpenCheck },
 ];
 
 export function ProgramSettingsPage() {
@@ -43,9 +46,12 @@ export function ProgramSettingsPage() {
     </section> : null}
 
     {activeTab === "listes" ? <section className="space-y-5"><SettingsHeader icon={<ListChecks size={19} />} eyebrow="Listes utilisées" title="Contacts, accès et documents" text="Ces valeurs alimentent les listes déroulantes réellement utilisées dans les dossiers." /><section className="grid gap-5 2xl:grid-cols-2">{organisationOptions.map(section => <ClientOptionSection key={section.kind} {...section} />)}</section><ReferenceControlList references={references} loading={referenceRegistry.isLoading} /></section> : null}
+    {activeTab === "conservation" ? <ArchivePolicySettings /> : null}
+    {activeTab === "commerce" ? <section className="space-y-5"><SettingsHeader icon={<BookOpenCheck size={19} />} eyebrow="Nomenclature d’activité" title="Registre de commerce" text="Ajoutez, modifiez ou archivez les catégories et activités utilisées par votre cabinet." /><RcCatalogueManager /></section> : null}
   </WorkspaceLayout>;
 }
 
+function ArchivePolicySettings() { const policy = trpc.account.archivePolicy.get.useQuery(undefined, { staleTime: 30_000 }); const utils = trpc.useUtils(); const [retentionDays, setRetentionDays] = useState(30); const [allowImmediateDeletion, setAllowImmediateDeletion] = useState(false); const [message, setMessage] = useState(""); useEffect(() => { if (policy.data) { setRetentionDays(policy.data.retentionDays); setAllowImmediateDeletion(policy.data.allowImmediateDeletion); } }, [policy.data]); const update = trpc.account.archivePolicy.update.useMutation({ onSuccess: async data => { setRetentionDays(data.retentionDays); setAllowImmediateDeletion(data.allowImmediateDeletion); setMessage("Règle de conservation enregistrée."); await utils.account.archivePolicy.get.invalidate(); } }); const save = () => { setMessage(""); update.mutate({ retentionDays: retentionDays as 7 | 15 | 30 | 60 | 90, allowImmediateDeletion }); }; return <section className="space-y-5"><SettingsHeader icon={<Trash2 size={19} />} eyebrow="Règle de conservation du compte" title="Suppression et délai" text="Choisissez la durée de conservation des éléments archivés et contrôlez si une purge immédiate est autorisée." /><section className="ui-sheet p-5 sm:p-6"><div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><label className="block"><span className="ui-label">Durée de conservation</span><span className="mt-2 block"><AppSelect value={String(retentionDays)} onValueChange={value => setRetentionDays(Number(value))} options={[7, 15, 30, 60, 90].map(day => ({ value: String(day), label: `${day} jours` }))} /></span></label><label className="flex items-start gap-3 border border-[#ead7a4] bg-[#fff9e8] p-4"><input type="checkbox" checked={allowImmediateDeletion} onChange={event => setAllowImmediateDeletion(event.target.checked)} className="mt-1 h-4 w-4 accent-[#0b625e]" /><span><span className="ui-label">Autoriser la suppression immédiate</span><span className="mt-1 block text-sm leading-5 text-[#63737d]">Si désactivé, l’élément doit attendre la fin du délai avant la purge définitive.</span></span></label></div><div className="mt-5 flex flex-wrap items-center gap-3"><button type="button" onClick={save} disabled={policy.isLoading || update.isPending} className="ui-action"><Save size={16} />{update.isPending ? "Enregistrement…" : "Enregistrer la règle"}</button>{message ? <span className="text-sm font-bold text-[#0b625e]">{message}</span> : null}</div></section></section>; }
 function SettingsHeader({ icon, eyebrow, title, text }: { icon: React.ReactNode; eyebrow: string; title: string; text: string }) { return <div className="ui-sheet flex items-start gap-3 p-5 sm:p-6"><span className="grid h-10 w-10 shrink-0 place-items-center border border-[#b8d2c7] bg-[#eaf3ee] text-[#0b625e]">{icon}</span><div><p className="ui-label">{eyebrow}</p><h2 className="mt-2 font-serif text-3xl text-[#182b3a]">{title}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[#63737d]">{text}</p></div></div>; }
 function LoadingLine({ text }: { text: string }) { return <p className="border border-dashed border-[#cbd9d5] bg-[#f7faf6] p-4 text-sm text-[#63737d]">{text}</p>; }
 function Metric({ label, value, tone = "paper" }: { label: string; value: string; tone?: "paper" | "teal" }) { return <div className={`min-w-0 p-3 ${tone === "teal" ? "bg-[#0b625e] text-white" : "bg-[#fffefa] text-[#182b3a]"}`}><p className="truncate text-[9px] font-extrabold uppercase tracking-[.1em] opacity-70">{label}</p><p className="mt-1 font-serif text-2xl">{value}</p></div>; }

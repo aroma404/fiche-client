@@ -1,9 +1,8 @@
-import { BookOpenCheck, UserRound, Users } from "lucide-react";
+import { UserRound, Users } from "lucide-react";
 import { Link, useLocation } from "wouter";
 
 const tabs = [
   { href: "/clients", label: "Dossiers", icon: Users },
-  { href: "/registre-commerce", label: "Registre de commerce", icon: BookOpenCheck },
   { href: "/compte", label: "Mon compte", icon: UserRound },
 ] as const;
 

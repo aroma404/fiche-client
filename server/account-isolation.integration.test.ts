@@ -154,6 +154,15 @@ suite("isolation persistante A/B", () => {
     await expect(settingsA.clientOptions.archived()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: option.id })]));
     await settingsA.clientOptions.restore({ id: option.id });
 
+    const customDocumentStatus = await settingsA.clientOptions.create({ kind: "documentStatus", label: `Statut documentaire ${runId.slice(0, 8)}` });
+    const documentsA = clientsRouter.createCaller(contextFor(tokenA)).documents;
+    await documentsA.create({ clientId: clientA, document: { label: "Document de test", category: "Fiscal", status: customDocumentStatus.label, paymentDone: false, note: "Test temporaire supprimé automatiquement" } });
+    await expect(settingsB.clientOptions.list({ kind: "documentStatus" })).resolves.not.toEqual(expect.arrayContaining([expect.objectContaining({ id: customDocumentStatus.id, label: customDocumentStatus.label })]));
+    const renamedDocumentStatus = `Statut renommé ${runId.slice(0, 8)}`;
+    await settingsA.clientOptions.update({ id: customDocumentStatus.id, label: renamedDocumentStatus });
+    await expect(documentsA.list({ clientId: clientA })).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ label: "Document de test", status: renamedDocumentStatus })]));
+    await expect(settingsA.clientOptions.remove({ id: customDocumentStatus.id })).rejects.toThrow("encore utilisée");
+
     const customContactType = await settingsA.clientOptions.create({ kind: "contactType", label: "Canal sécurisé" });
     const customVaultCategory = await settingsA.clientOptions.create({ kind: "vaultCategory", label: "Clé API" });
     await expect(settingsA.referenceRegistry.list()).resolves.toEqual(expect.arrayContaining([expect.objectContaining({ id: "contactType", mode: "administrable", scope: "compte" }), expect.objectContaining({ id: "vaultCategory", mode: "administrable", scope: "compte" })]));

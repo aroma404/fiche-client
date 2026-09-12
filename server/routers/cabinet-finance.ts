@@ -4,7 +4,6 @@ import { cabinetFinanceEntries, clientDocuments, clients } from "../../drizzle/s
 import { requireCurrentAccount } from "../account-context";
 import { getDb, getOwnedClient } from "../db";
 import { archivePurgeAfterForAccount } from "../archive-policy";
-import { allocateNextClientTransactionReference } from "../client-transaction-reference";
 import { publicProcedure, router } from "../_core/trpc";
 
 const financeInput = z.object({
@@ -36,12 +35,6 @@ async function assertFinanceOwnership(db: any, accountId: number, input: z.infer
   }
 }
 
-async function syncDocumentPayment(tx: any, documentId: number | null | undefined) {
-  if (!documentId) return;
-  const [linked] = await tx.select({ count: count(cabinetFinanceEntries.id) }).from(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.documentId, documentId), eq(cabinetFinanceEntries.category, "Paiement"), isNull(cabinetFinanceEntries.deletedAt)));
-  await tx.update(clientDocuments).set({ paymentDone: Number(linked?.count ?? 0) > 0 }).where(eq(clientDocuments.id, documentId));
-}
-
 function periodBounds(period: "day" | "month" | "year", now = new Date()) {
   const year = now.getUTCFullYear(); const month = String(now.getUTCMonth() + 1).padStart(2, "0"); const day = String(now.getUTCDate()).padStart(2, "0");
   if (period === "day") return { start: `${year}-${month}-${day}`, end: `${year}-${month}-${day}` };
@@ -71,7 +64,7 @@ export const cabinetFinanceRouter = router({
   }),
   clientDocuments: publicProcedure.input(z.object({ clientId: z.number().int().positive() })).query(async ({ ctx, input }) => {
     const account = await requireCurrentAccount(ctx.req); const client = await getOwnedClient(account.id, input.clientId); if (!client || client.deletedAt) throw new Error("Client introuvable ou archivé."); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
-    return db.select({ id: clientDocuments.id, label: clientDocuments.label, category: clientDocuments.category, status: clientDocuments.status, paymentDone: clientDocuments.paymentDone }).from(clientDocuments).where(and(eq(clientDocuments.clientId, input.clientId), isNull(clientDocuments.deletedAt))).orderBy(desc(clientDocuments.updatedAt));
+    return db.select({ id: clientDocuments.id, label: clientDocuments.label, category: clientDocuments.category, status: clientDocuments.status }).from(clientDocuments).where(and(eq(clientDocuments.clientId, input.clientId), isNull(clientDocuments.deletedAt))).orderBy(desc(clientDocuments.updatedAt));
   }),
   archived: publicProcedure.query(async ({ ctx }) => {
     const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
@@ -84,38 +77,24 @@ export const cabinetFinanceRouter = router({
   }),
   create: publicProcedure.input(financeInput).mutation(async ({ ctx, input }) => {
     const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible."); await assertFinanceOwnership(db, account.id, input);
-    const inserted = await db.transaction(async tx => {
-      const clientTransactionReference = input.clientId ? await allocateNextClientTransactionReference(tx, input.clientId) : null;
-      const result = await tx.insert(cabinetFinanceEntries).values({ ...input, accountId: account.id, clientId: input.clientId ?? null, documentId: input.documentId ?? null, clientTransactionReference, amount: input.amount.toFixed(2) });
-      await syncDocumentPayment(tx, input.documentId);
-      return result;
-    });
+    const inserted = await db.insert(cabinetFinanceEntries).values({ ...input, accountId: account.id, clientId: input.clientId ?? null, documentId: input.documentId ?? null, amount: input.amount.toFixed(2) });
     return { entryId: Number(inserted[0]?.insertId) };
   }),
   update: publicProcedure.input(z.object({ entryId: z.number().int().positive(), entry: financeInput })).mutation(async ({ ctx, input }) => {
     const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
-    const current = (await db.select({ id: cabinetFinanceEntries.id, clientId: cabinetFinanceEntries.clientId, documentId: cabinetFinanceEntries.documentId, clientTransactionReference: cabinetFinanceEntries.clientTransactionReference }).from(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.id, input.entryId), eq(cabinetFinanceEntries.accountId, account.id), isNull(cabinetFinanceEntries.deletedAt))).limit(1))[0];
+    const current = (await db.select({ id: cabinetFinanceEntries.id }).from(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.id, input.entryId), eq(cabinetFinanceEntries.accountId, account.id), isNull(cabinetFinanceEntries.deletedAt))).limit(1))[0];
     if (!current) throw new Error("Mouvement introuvable."); await assertFinanceOwnership(db, account.id, input.entry);
-    await db.transaction(async tx => {
-      const clientChanged = current.clientId !== (input.entry.clientId ?? null);
-      const clientTransactionReference = input.entry.clientId ? (clientChanged || !current.clientTransactionReference ? await allocateNextClientTransactionReference(tx, input.entry.clientId) : current.clientTransactionReference) : null;
-      await tx.update(cabinetFinanceEntries).set({ ...input.entry, clientId: input.entry.clientId ?? null, documentId: input.entry.documentId ?? null, clientTransactionReference, amount: input.entry.amount.toFixed(2) }).where(and(eq(cabinetFinanceEntries.id, input.entryId), eq(cabinetFinanceEntries.accountId, account.id)));
-      await syncDocumentPayment(tx, current.documentId); await syncDocumentPayment(tx, input.entry.documentId);
-    });
+    await db.update(cabinetFinanceEntries).set({ ...input.entry, clientId: input.entry.clientId ?? null, documentId: input.entry.documentId ?? null, amount: input.entry.amount.toFixed(2) }).where(and(eq(cabinetFinanceEntries.id, input.entryId), eq(cabinetFinanceEntries.accountId, account.id)));
     return { success: true } as const;
   }),
   remove: publicProcedure.input(z.object({ entryId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
-    const current = (await db.select({ documentId: cabinetFinanceEntries.documentId }).from(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.id, input.entryId), eq(cabinetFinanceEntries.accountId, account.id), isNull(cabinetFinanceEntries.deletedAt))).limit(1))[0];
-    if (!current) throw new Error("Mouvement introuvable."); const now = new Date(); const purgeAfter = await archivePurgeAfterForAccount(db, account.id, now);
-    await db.transaction(async tx => { await tx.update(cabinetFinanceEntries).set({ deletedAt: now, purgeAfter }).where(and(eq(cabinetFinanceEntries.id, input.entryId), eq(cabinetFinanceEntries.accountId, account.id), isNull(cabinetFinanceEntries.deletedAt))); await syncDocumentPayment(tx, current.documentId); });
-    return { success: true } as const;
+    const now = new Date(); const result = await db.update(cabinetFinanceEntries).set({ deletedAt: now, purgeAfter: await archivePurgeAfterForAccount(db, account.id, now) }).where(and(eq(cabinetFinanceEntries.id, input.entryId), eq(cabinetFinanceEntries.accountId, account.id), isNull(cabinetFinanceEntries.deletedAt)));
+    if (!(result[0]?.affectedRows ?? 0)) throw new Error("Mouvement introuvable."); return { success: true } as const;
   }),
   restore: publicProcedure.input(z.object({ entryId: z.number().int().positive() })).mutation(async ({ ctx, input }) => {
     const account = await requireCurrentAccount(ctx.req); const db = await getDb(); if (!db) throw new Error("La base de données est indisponible.");
-    const current = (await db.select({ documentId: cabinetFinanceEntries.documentId }).from(cabinetFinanceEntries).where(and(eq(cabinetFinanceEntries.id, input.entryId), eq(cabinetFinanceEntries.accountId, account.id), isNotNull(cabinetFinanceEntries.deletedAt))).limit(1))[0];
-    if (!current) throw new Error("Mouvement archivé introuvable.");
-    await db.transaction(async tx => { await tx.update(cabinetFinanceEntries).set({ deletedAt: null, purgeAfter: null }).where(and(eq(cabinetFinanceEntries.id, input.entryId), eq(cabinetFinanceEntries.accountId, account.id), isNotNull(cabinetFinanceEntries.deletedAt))); await syncDocumentPayment(tx, current.documentId); });
-    return { success: true } as const;
+    const result = await db.update(cabinetFinanceEntries).set({ deletedAt: null, purgeAfter: null }).where(and(eq(cabinetFinanceEntries.id, input.entryId), eq(cabinetFinanceEntries.accountId, account.id), isNotNull(cabinetFinanceEntries.deletedAt)));
+    if (!(result[0]?.affectedRows ?? 0)) throw new Error("Mouvement archivé introuvable."); return { success: true } as const;
   }),
 });

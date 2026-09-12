@@ -34,15 +34,3 @@ describe("règles client partagées", () => {
     expect(normalizeBundle({ client: { fullName: "Ancien dossier" } }).client).toMatchObject({ cnasAffiliated: false, casnosAffiliated: false });
   });
 });
-
-  it("sépare l’état de paiement du statut documentaire", () => {
-    const draft = normalizeBundle({
-      client: { fullName: "Dossier documentaire" },
-      documents: [
-        { label: "G8", category: "Fiscal", status: "Reçu", paymentDone: true, note: "" },
-        { label: "C20", category: "Fiscal", status: "Reçu", note: "" },
-      ],
-    });
-    expect(draft.documents[0]).toMatchObject({ status: "Reçu", paymentDone: true });
-    expect(draft.documents[1]).toMatchObject({ status: "Reçu", paymentDone: false });
-  });

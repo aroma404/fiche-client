@@ -22,7 +22,7 @@ export const privateFeatureRegistry: readonly PrivateFeatureDefinition[] = [
   { id: "finances", href: "/finances", label: "Finances du cabinet", sectionTitle: "Finances du cabinet", icon: Landmark, prewarm: true, visibleInNavigation: true },
   { id: "transfers", href: "/transferts", label: "Importer / exporter", sectionTitle: "Importation et exportation", icon: Download, prewarm: true, visibleInNavigation: true },
   { id: "archives", href: "/archives", label: "Archives", sectionTitle: "Archives", icon: ArchiveRestore, prewarm: true, visibleInNavigation: true },
-  { id: "commerce", href: "/registre-commerce", label: "Registre de commerce", sectionTitle: "Registre de commerce", icon: BookOpenCheck, prewarm: true, visibleInNavigation: false },
+  { id: "commerce", href: "/registre-commerce", label: "Registre de commerce", sectionTitle: "Registre de commerce", icon: BookOpenCheck, prewarm: true, visibleInNavigation: true },
   { id: "settings", href: "/reglages", label: "Réglages du programme", sectionTitle: "Réglages du programme", icon: Settings2, prewarm: true, visibleInNavigation: false },
   { id: "account", href: "/compte", label: "Mon compte", sectionTitle: "Mon compte", icon: Settings2, prewarm: true, visibleInNavigation: false },
 ] as const;

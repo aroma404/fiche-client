@@ -3,21 +3,24 @@ import { PageTitle, WorkspaceLayout } from "@/components/workspace-layout";
 import { trpc } from "@/lib/trpc";
 import { programReferenceRegistry, type AccountOptionKind, type ProgramReferenceDefinition } from "@shared/reference-registry";
 import { FolderCog, ListChecks, Plus, Save, Settings2, Trash2 } from "lucide-react";
-import { RcCatalogueManager } from "./rc-catalogue-manager";
-import { AccountProgramNav } from "@/features/account/account-program-nav";
 import { type FormEvent, useEffect, useMemo, useState } from "react";
 
 type ProgramStatus = { id: number; label: string; isOperational: boolean; usageCount?: number };
 type ProgramOption = { id: number; code: string; label: string; usageCount?: number };
 type ReferenceSummary = ProgramReferenceDefinition & { valueCount: number; usageCount: number; catalogueFamilies?: number };
-type SettingsTab = "dossiers" | "listes" | "conservation" | "commerce";
+type SettingsTab = "dossiers" | "listes";
 
 const optionSections = programReferenceRegistry.filter(reference => reference.optionKind).map(reference => ({ kind: reference.optionKind as AccountOptionKind, eyebrow: reference.group, title: reference.title, hint: reference.description }));
+const tabs: { id: SettingsTab; label: string; icon: typeof FolderCog }[] = [
+  { id: "dossiers", label: "Dossiers", icon: FolderCog },
+  { id: "listes", label: "Listes du cabinet", icon: ListChecks },
+];
+
 export function ProgramSettingsPage() {
   const utils = trpc.useUtils();
   const statuses = trpc.programSettings.clientStatuses.list.useQuery(undefined, { staleTime: 30_000 });
   const referenceRegistry = trpc.programSettings.referenceRegistry.list.useQuery(undefined, { staleTime: 30_000 });
-  const [activeTab, setActiveTab] = useState<SettingsTab>(() => { const requested = new URLSearchParams(window.location.search).get("tab"); return requested === "listes" || requested === "conservation" || requested === "commerce" ? requested : "dossiers"; });
+  const [activeTab, setActiveTab] = useState<SettingsTab>("dossiers");
   const [newLabel, setNewLabel] = useState("");
   const [newOperational, setNewOperational] = useState(true);
   const [statusMessage, setStatusMessage] = useState("");
@@ -30,7 +33,8 @@ export function ProgramSettingsPage() {
   const organisationOptions = optionSections.filter(section => !["legalForm", "clientType", "regime", "taxCenter", "activityKind"].includes(section.kind));
 
   return <WorkspaceLayout>
-    <PageTitle eyebrow="Configuration du cabinet" title="Réglages du programme" description="Gérez les listes et le catalogue utilisés par votre cabinet." /><AccountProgramNav settingsTab={activeTab} onSettingsTabChange={setActiveTab} />
+    <PageTitle eyebrow="Configuration du cabinet" title="Réglages du programme" description="Gérez les listes et le catalogue utilisés par votre cabinet." />
+    <nav aria-label="Sections des réglages" className="mb-6 flex gap-1 overflow-x-auto border-b border-[#d7e0df]">{tabs.map(tab => { const Icon = tab.icon; const active = activeTab === tab.id; return <button key={tab.id} type="button" onClick={() => setActiveTab(tab.id)} className={`inline-flex shrink-0 items-center gap-2 border-b-2 px-3 py-3 text-sm font-bold ${active ? "border-[#0b625e] text-[#0b625e]" : "border-transparent text-[#627785] hover:text-[#182b3a]"}`}><Icon size={16} />{tab.label}</button>; })}</nav>
 
     {activeTab === "dossiers" ? <section className="space-y-5">
       <SettingsHeader icon={<FolderCog size={19} />} eyebrow="Référentiels des dossiers" title="Statuts et informations client" text="Modifiez les valeurs réellement utilisées lors de la création et du suivi des dossiers." />
@@ -39,12 +43,9 @@ export function ProgramSettingsPage() {
     </section> : null}
 
     {activeTab === "listes" ? <section className="space-y-5"><SettingsHeader icon={<ListChecks size={19} />} eyebrow="Listes utilisées" title="Contacts, accès et documents" text="Ces valeurs alimentent les listes déroulantes réellement utilisées dans les dossiers." /><section className="grid gap-5 2xl:grid-cols-2">{organisationOptions.map(section => <ClientOptionSection key={section.kind} {...section} />)}</section><ReferenceControlList references={references} loading={referenceRegistry.isLoading} /></section> : null}
-    {activeTab === "conservation" ? <ArchivePolicySettings /> : null}
-    {activeTab === "commerce" ? <RcCatalogueManager /> : null}
   </WorkspaceLayout>;
 }
 
-function ArchivePolicySettings() { const policy = trpc.account.archivePolicy.get.useQuery(undefined, { staleTime: 30_000 }); const utils = trpc.useUtils(); const [retentionDays, setRetentionDays] = useState(30); const [allowImmediateDeletion, setAllowImmediateDeletion] = useState(false); const [message, setMessage] = useState(""); useEffect(() => { if (policy.data) { setRetentionDays(policy.data.retentionDays); setAllowImmediateDeletion(policy.data.allowImmediateDeletion); } }, [policy.data]); const update = trpc.account.archivePolicy.update.useMutation({ onSuccess: async data => { setRetentionDays(data.retentionDays); setAllowImmediateDeletion(data.allowImmediateDeletion); setMessage("Règle de conservation enregistrée."); await utils.account.archivePolicy.get.invalidate(); } }); const save = () => { setMessage(""); update.mutate({ retentionDays: retentionDays as 7 | 15 | 30 | 60 | 90, allowImmediateDeletion }); }; return <section className="space-y-5"><SettingsHeader icon={<Trash2 size={19} />} eyebrow="Règle de conservation du compte" title="Suppression et délai" text="Choisissez la durée de conservation des éléments archivés et contrôlez si une purge immédiate est autorisée." /><section className="ui-sheet overflow-hidden p-0"><div className="grid items-stretch gap-5 p-5 sm:p-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]"><label className="block"><span className="ui-label">Durée de conservation</span><span className="mt-2 block"><AppSelect value={String(retentionDays)} onValueChange={value => setRetentionDays(Number(value))} options={[7, 15, 30, 60, 90].map(day => ({ value: String(day), label: `${day} jours` }))} /></span></label><label className="flex items-start gap-3 rounded-lg border border-[#c7d8d3] bg-[#f4faf7] p-4"><input type="checkbox" checked={allowImmediateDeletion} onChange={event => setAllowImmediateDeletion(event.target.checked)} className="mt-1 h-4 w-4 accent-[#0b625e]" /><span><span className="ui-label">Autoriser la suppression immédiate</span><span className="mt-1 block text-sm leading-5 text-[#63737d]">Si désactivé, l’élément doit attendre la fin du délai avant la purge définitive.</span></span></label></div><div className="flex flex-wrap items-center gap-3 border-t border-[#dce3dc] bg-[#fbfcf9] px-5 py-4 sm:px-6"><button type="button" onClick={save} disabled={policy.isLoading || update.isPending} className="ui-action"><Save size={16} />{update.isPending ? "Enregistrement…" : "Enregistrer la règle"}</button>{message ? <span className="text-sm font-bold text-[#0b625e]">{message}</span> : null}</div></section></section>; }
 function SettingsHeader({ icon, eyebrow, title, text }: { icon: React.ReactNode; eyebrow: string; title: string; text: string }) { return <div className="ui-sheet flex items-start gap-3 p-5 sm:p-6"><span className="grid h-10 w-10 shrink-0 place-items-center border border-[#b8d2c7] bg-[#eaf3ee] text-[#0b625e]">{icon}</span><div><p className="ui-label">{eyebrow}</p><h2 className="mt-2 font-serif text-3xl text-[#182b3a]">{title}</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-[#63737d]">{text}</p></div></div>; }
 function LoadingLine({ text }: { text: string }) { return <p className="border border-dashed border-[#cbd9d5] bg-[#f7faf6] p-4 text-sm text-[#63737d]">{text}</p>; }
 function Metric({ label, value, tone = "paper" }: { label: string; value: string; tone?: "paper" | "teal" }) { return <div className={`min-w-0 p-3 ${tone === "teal" ? "bg-[#0b625e] text-white" : "bg-[#fffefa] text-[#182b3a]"}`}><p className="truncate text-[9px] font-extrabold uppercase tracking-[.1em] opacity-70">{label}</p><p className="mt-1 font-serif text-2xl">{value}</p></div>; }

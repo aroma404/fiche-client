@@ -20,6 +20,7 @@ export const loadClientFichePage = cachedModule(() => import("@/features/clients
 export const loadClientDocumentsPage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientDocumentsPage })));
 export const loadClientCasesPage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientCasesPage })));
 export const loadClientPaymentsPage = cachedModule(() => import("@/features/clients/client-payments-page").then(module => ({ default: module.ClientPaymentsPage })));
+export const loadClientCashPage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientCashPage })));
 export const loadClientPrintPage = cachedModule(() => import("@/pages/clients-pages").then(module => ({ default: module.ClientPrintPage })));
 export const loadDashboardPage = cachedModule(() => import("@/pages/dashboard-page").then(module => ({ default: module.DashboardPage })));
 export const loadTransfersPage = cachedModule(() => import("@/pages/transfers-page").then(module => ({ default: module.TransfersPage })));
